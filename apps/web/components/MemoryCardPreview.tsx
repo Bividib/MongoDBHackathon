@@ -5,6 +5,11 @@ import { memoryCard, type DemoPhase } from "./cockpit-data";
 
 export function MemoryCardPreview({ phase }: { phase: DemoPhase }) {
   const written = phase === "bank";
+  const body = written
+    ? memoryCard.body
+    : phase === "reply"
+      ? "Memory write is pending. The reply has been classified as conditional, and the rule will be committed after the live replanning cascade."
+      : "Next-case memory is pending. RunwayOps will write the Northstar behaviour card after the case has enough evidence.";
 
   return (
     <Panel
@@ -27,11 +32,15 @@ export function MemoryCardPreview({ phase }: { phase: DemoPhase }) {
             <StatusPill status={written ? "memory_cards +1" : "pending write"} />
           </div>
           <p className="m-0 text-sm font-semibold leading-6 text-[var(--muted)]">
-            {memoryCard.body}
+            {body}
           </p>
         </article>
 
-        <article className="rounded-md border border-[var(--line)] bg-[var(--panel-muted)] p-4">
+        <article
+          className={`rounded-md border border-[var(--line)] bg-[var(--panel-muted)] p-4 ${
+            written ? "" : "opacity-70"
+          }`}
+        >
           <h3 className="m-0 text-sm font-black uppercase tracking-[0.08em] text-[var(--navy)]">
             Next Case Preview
           </h3>

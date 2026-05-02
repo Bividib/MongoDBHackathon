@@ -15,14 +15,16 @@ import { commandFacts, phaseSummary, type DemoPhase } from "./cockpit-data";
 type RiskCommandBarProps = {
   phase: DemoPhase;
   bankFeedArmed: boolean;
-  onSimulateReply: () => void;
-  onStartBankFeed: () => void;
+  loading?: boolean;
+  onSimulateReply: () => void | Promise<void>;
+  onStartBankFeed: () => void | Promise<void>;
   onReset: () => void;
 };
 
 export function RiskCommandBar({
   phase,
   bankFeedArmed,
+  loading = false,
   onReset,
   onSimulateReply,
   onStartBankFeed
@@ -88,13 +90,13 @@ export function RiskCommandBar({
 
         <div className="grid gap-2 sm:grid-cols-3 xl:w-[300px] xl:grid-cols-1">
           <CommandButton
-            disabled={phase !== "baseline"}
+            disabled={loading || phase !== "baseline"}
             icon={<MailCheck size={17} aria-hidden />}
             label="Simulate Customer A Reply"
             onClick={onSimulateReply}
           />
           <CommandButton
-            disabled={phase === "bank" || bankFeedArmed}
+            disabled={loading || phase === "bank" || bankFeedArmed}
             icon={<Radio size={17} aria-hidden />}
             label={bankFeedArmed ? "Bank Feed Running" : "Start Live Bank Feed"}
             onClick={onStartBankFeed}
@@ -159,7 +161,7 @@ function CommandButton({
   disabled?: boolean;
   icon: ReactNode;
   label: string;
-  onClick: () => void;
+  onClick: () => void | Promise<void>;
   variant?: "primary" | "secondary";
 }) {
   const variantClass =
@@ -175,7 +177,7 @@ function CommandButton({
       type="button"
     >
       {icon}
-      <span className="truncate">{label}</span>
+      <span className="text-center leading-4">{label}</span>
     </button>
   );
 }

@@ -2,14 +2,99 @@ import { FileSearch, ListChecks } from "lucide-react";
 import { Panel } from "./Panel";
 import { StatusPill } from "./StatusPill";
 import {
-  auditQuestions,
   phaseSummary,
   retrievalEvidence,
   type DemoPhase
 } from "./cockpit-data";
 
+const auditQuestionsByPhase: Record<
+  DemoPhase,
+  Array<{
+    question: string;
+    answer: string;
+  }>
+> = {
+  baseline: [
+    {
+      question: "What changed?",
+      answer:
+        "RunwayOps opened a Payroll Risk Case after the scheduled scan found payroll at risk."
+    },
+    {
+      question: "Why is risk HIGH?",
+      answer:
+        "If Supplier X is paid and invoices slip, Friday is short by £5,200. Holding Supplier X still leaves a £2,800 gap."
+    },
+    {
+      question: "Why not count Northstar yet?",
+      answer:
+        "Northstar is the main dependency, but prior memory says PO-dependent promises need explicit confirmation."
+    },
+    {
+      question: "What needs approval?",
+      answer:
+        "The Northstar confirmation email, Blue Finch formal reminder, and Supplier X hold remain pending human approval."
+    }
+  ],
+  reply: [
+    {
+      question: "What changed?",
+      answer:
+        "Northstar replied that they should be able to pay Friday once the PO is re-approved."
+    },
+    {
+      question: "Why is risk still HIGH?",
+      answer:
+        "The reply is a conditional promise with confidence 0.48, so the system does not treat it as guaranteed cash."
+    },
+    {
+      question: "Which evidence was used?",
+      answer:
+        "INV-1042, the Northstar email thread, payment history, prior PO-dependent memory, and Supplier X grace terms."
+    },
+    {
+      question: "What needs approval?",
+      answer:
+        "Approve the explicit PO/payment confirmation email and keep Supplier X held inside written grace terms."
+    }
+  ],
+  bank: [
+    {
+      question: "What changed?",
+      answer:
+        "Harbour Labs posted a £1,200 retainer, lifting cash from £8,400 to £9,600 before payroll."
+    },
+    {
+      question: "Why did risk move HIGH -> WATCH?",
+      answer:
+        "The worst visible shortfall moved from £2,800 to £1,600 when Supplier X is held, and the Northstar-pay scenario now leaves £800 after Supplier X."
+    },
+    {
+      question: "Why is it not SAFE?",
+      answer:
+        "Northstar still depends on PO re-approval. The system preserves the slip scenario instead of counting conditional language as guaranteed cash."
+    },
+    {
+      question: "Why did Supplier X change?",
+      answer:
+        "The extra £1,200 makes a conditional hold viable, but release still waits for Friday morning cash confirmation."
+    },
+    {
+      question: "Which evidence was used?",
+      answer:
+        "INV-1042, the Northstar email thread, payment history, prior PO-dependent memory, Supplier X grace terms, and the Harbour Labs bank transaction."
+    },
+    {
+      question: "What needs approval?",
+      answer:
+        "The Northstar confirmation email, Blue Finch formal reminder, and Supplier X conditional hold remain pending human approval."
+    }
+  ]
+};
+
 export function AuditWhyPanel({ phase }: { phase: DemoPhase }) {
   const summary = phaseSummary[phase];
+  const auditQuestions = auditQuestionsByPhase[phase];
 
   return (
     <Panel

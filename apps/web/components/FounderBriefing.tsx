@@ -9,6 +9,11 @@ import { founderBriefing, type DemoPhase } from "./cockpit-data";
 export function FounderBriefing({ phase }: { phase: DemoPhase }) {
   const [playing, setPlaying] = useState(false);
   const generated = phase === "bank";
+  const transcript = generated
+    ? founderBriefing.transcript
+    : phase === "reply"
+      ? "Briefing is queued until a cash-changing bank event arrives. Northstar is conditional, so the case remains high risk."
+      : "Briefing is queued. RunwayOps will generate the founder action brief after live replanning evidence is available.";
 
   return (
     <Panel
@@ -39,8 +44,10 @@ export function FounderBriefing({ phase }: { phase: DemoPhase }) {
             </button>
           </div>
           <div className="mt-3 grid gap-2 text-xs font-bold text-[var(--muted)] sm:grid-cols-[1fr_auto]">
-            <span className="truncate">{founderBriefing.audioKey}</span>
-            <span>{founderBriefing.duration}</span>
+            <span className="truncate">
+              {generated ? founderBriefing.audioKey : "Audio artifact pending"}
+            </span>
+            <span>{generated ? founderBriefing.duration : "--:--"}</span>
           </div>
         </div>
 
@@ -49,7 +56,7 @@ export function FounderBriefing({ phase }: { phase: DemoPhase }) {
             Transcript
           </h3>
           <p className="m-0 mt-3 text-sm font-semibold leading-7 text-[var(--text)]">
-            {founderBriefing.transcript}
+            {transcript}
           </p>
         </article>
       </div>
