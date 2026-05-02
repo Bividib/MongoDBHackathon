@@ -262,28 +262,6 @@ async function buildContext(db: Db, body: OutboundCallRequest): Promise<Outreach
   };
 }
 
-function buildAgentPrompt(context: OutreachContext): string {
-  return [
-    "You are calling on behalf of RunwayOps for a controlled demo/test call.",
-    "If asked, say this is a controlled RunwayOps demo/test call.",
-    "",
-    "Purpose of the call:",
-    context.purpose,
-    "",
-    "Important boundaries:",
-    "- Do not claim to be a lawyer, debt collector, accountant, bank, or regulated financial adviser.",
-    "- Do not threaten penalties, legal action, credit consequences, or service suspension.",
-    "- Ask only for payment timing confirmation and whether any blocker exists.",
-    "- Do not take card details, bank details, or payments.",
-    "- If the person says this is inconvenient, apologise and end the call politely.",
-    "",
-    "Context:",
-    `- Customer/contact: ${context.customerName}`,
-    `- Invoice: ${context.invoiceNumber}`,
-    `- Amount: GBP ${context.amountGbp}`
-  ].join("\n");
-}
-
 function buildFirstMessage(context: OutreachContext): string {
   return [
     `Hello, this is a RunwayOps demo call for ${context.customerName}.`,
@@ -399,9 +377,6 @@ function buildPayload(config: ElevenLabsConfig, context: OutreachContext) {
       },
       conversation_config_override: {
         agent: {
-          prompt: {
-            prompt: buildAgentPrompt(context)
-          },
           first_message: buildFirstMessage(context),
           language: "en"
         }

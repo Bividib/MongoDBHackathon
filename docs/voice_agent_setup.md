@@ -93,3 +93,24 @@ customers.phone_contact_consent
 ```
 
 If response-pattern data is missing, the route records `contact_response_profile.status = needs_more_signal` on the customer document and still requires human approval before any call. Email-preferred customers receive an email draft in the route internals, but this route does not send email.
+
+## Runtime Override Finding
+
+Live diagnostics showed this boundary:
+
+```text
+minimal outbound payload: connects
+first_message + dynamic_variables override: connects
+full prompt.prompt override: can fail before ElevenLabs accepts the call
+```
+
+For the live demo, keep the API route to first-message and dynamic variable overrides only. Configure the ElevenLabs agent prompt in the ElevenLabs dashboard to use:
+
+```text
+{{customer_name}}
+{{invoice_number}}
+{{amount_gbp}}
+{{call_purpose}}
+```
+
+The dashboard prompt should include the safety rules above. This gives the agent the right call context without using the runtime `prompt.prompt` override that caused failed call handoffs in testing.
