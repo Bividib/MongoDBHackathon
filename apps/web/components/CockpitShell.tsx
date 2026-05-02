@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { AgentWorkers } from "./AgentWorkers";
+import { AuditTrail } from "./AuditTrail";
 import { DraftApprovalPanel } from "./DraftApprovalPanel";
 import { FounderBriefing } from "./FounderBriefing";
 import { CashRunwayPanel, PaymentPlanRecommendation } from "./MainCaseBoard";
@@ -182,7 +183,10 @@ export function CockpitShell() {
           className="grid gap-5 lg:grid-cols-2"
         >
           <AgentWorkers phase={phase} />
-          <MongoAtlasLiveState phase={phase} />
+          <div className="grid gap-5">
+            <MongoAtlasLiveState phase={phase} />
+            <AuditTrail phase={phase} />
+          </div>
         </section>
 
         <div className="sr-only" aria-live="polite">

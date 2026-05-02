@@ -361,6 +361,7 @@ export type MongoCounter = {
   label: string;
   value: string;
   hint?: string;
+  highlight?: boolean;
 };
 
 export type MongoStateSnapshot = {
@@ -403,9 +404,45 @@ export const mongoStateByPhase: Record<DemoPhase, MongoStateSnapshot> = {
       { label: "Pending approvals", value: "3" },
       { label: "Forecast versions", value: "v3", hint: "3 saved" },
       { label: "Plan versions", value: "v3", hint: "3 saved" },
-      { label: "Memory written", value: "1", hint: "Northstar PO rule" }
+      { label: "Memory written", value: "1", hint: "Northstar PO rule", highlight: true }
     ]
   }
+};
+
+export type AuditTrailItem = {
+  collection: string;
+  count: string;
+  english: string;
+};
+
+export const auditTrailByPhase: Record<DemoPhase, ReadonlyArray<AuditTrailItem>> = {
+  baseline: [
+    { collection: "event_inbox", count: "1 event", english: "Morning scan that opened this case." },
+    { collection: "agent_runs", count: "5 steps", english: "Five agents worked through the baseline." },
+    { collection: "retrieval_attempts", count: "1 search", english: "Memory looked up Northstar's payment behaviour." },
+    { collection: "cashflow_forecasts", count: "v1", english: "Initial forecast — £5,200 short on Friday." },
+    { collection: "payment_run_plans", count: "v1", english: "First plan — delay Supplier X by 5 days." },
+    { collection: "decision_log", count: "1 entry", english: "Why the supplier delay is the right call." },
+    { collection: "memory_cards", count: "0 written", english: "Will be written after the case settles." }
+  ],
+  reply: [
+    { collection: "event_inbox", count: "2 events", english: "Northstar's reply joined the morning scan." },
+    { collection: "agent_runs", count: "9 steps", english: "Memory, Forecast, and Collections re-ran." },
+    { collection: "retrieval_attempts", count: "2 searches", english: "Hybrid search saw the conditional promise." },
+    { collection: "cashflow_forecasts", count: "v2", english: "Risk stayed HIGH — the reply isn't guaranteed cash." },
+    { collection: "payment_run_plans", count: "v2", english: "Plan unchanged — Supplier X stays held." },
+    { collection: "decision_log", count: "2 entries", english: "Why the reply doesn't move risk." },
+    { collection: "memory_cards", count: "0 written", english: "Queued until the case settles." }
+  ],
+  bank: [
+    { collection: "event_inbox", count: "3 events", english: "Bank transaction joined the timeline." },
+    { collection: "agent_runs", count: "14 steps", english: "All six agents ran — Audit closed the loop." },
+    { collection: "retrieval_attempts", count: "2 searches", english: "Memory reused for the new forecast." },
+    { collection: "cashflow_forecasts", count: "v3", english: "Risk eased to WATCH after Harbour Labs paid." },
+    { collection: "payment_run_plans", count: "v3", english: "Plan switched to conditional hold on Supplier X." },
+    { collection: "decision_log", count: "3 entries", english: "Why WATCH is the right risk level — not SAFE." },
+    { collection: "memory_cards", count: "1 written", english: "Northstar PO-conditional rule saved for next case." }
+  ]
 };
 
 export const approvalQueue = [

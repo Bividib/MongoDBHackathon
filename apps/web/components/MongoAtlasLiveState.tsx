@@ -28,17 +28,33 @@ export function MongoAtlasLiveState({ phase }: { phase: DemoPhase }) {
         {snapshot.counters.map((counter) => (
           <div
             key={counter.label}
-            className="rounded-[var(--radius-sm)] border border-[var(--line)] bg-[var(--surface-muted)] p-3"
+            className={`rounded-[var(--radius-sm)] border p-3 ${
+              counter.highlight
+                ? "border-[rgba(245,166,35,0.45)] bg-[var(--amber-tint)] shadow-[var(--shadow-amber)]"
+                : "border-[var(--line)] bg-[var(--surface-muted)]"
+            }`}
           >
-            <dt className="m-0 text-[0.66rem] font-semibold uppercase tracking-[0.12em] text-[var(--text-faint)]">
+            <dt
+              className={`m-0 text-[0.66rem] font-semibold uppercase tracking-[0.12em] ${
+                counter.highlight ? "text-[var(--amber-soft)]" : "text-[var(--text-faint)]"
+              }`}
+            >
               {counter.label}
             </dt>
             <dd className="m-0 mt-1.5 flex items-baseline gap-2">
-              <span className="text-[1.05rem] font-semibold tabular text-[var(--text)]">
+              <span
+                className={`text-[1.05rem] font-semibold tabular ${
+                  counter.highlight ? "text-[var(--amber-soft)]" : "text-[var(--text)]"
+                }`}
+              >
                 {counter.value}
               </span>
               {counter.hint ? (
-                <span className="text-[0.7rem] font-medium text-[var(--text-faint)]">
+                <span
+                  className={`text-[0.7rem] font-medium ${
+                    counter.highlight ? "text-[var(--amber-soft)]" : "text-[var(--text-faint)]"
+                  }`}
+                >
                   {counter.hint}
                 </span>
               ) : null}
