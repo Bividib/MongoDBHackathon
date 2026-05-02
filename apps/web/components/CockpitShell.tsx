@@ -3,8 +3,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { AgentWorkers } from "./AgentWorkers";
 import { AuditTrail } from "./AuditTrail";
+import { CustomerCommsPanel } from "./CustomerCommsPanel";
 import { DraftApprovalPanel } from "./DraftApprovalPanel";
-import { FounderBriefing } from "./FounderBriefing";
 import { CashRunwayPanel, PaymentPlanRecommendation } from "./MainCaseBoard";
 import { MongoAtlasLiveState } from "./MongoAtlasLiveState";
 import { DemoControls, RiskCommandBar } from "./RiskCommandBar";
@@ -54,7 +54,7 @@ async function requestJson(path: string, init?: RequestInit) {
 
 export function CockpitShell() {
   const [phase, setPhase] = useState<DemoPhase>("baseline");
-  const [bankFeedArmed, setBankFeedArmed] = useState(false);
+  const [bankEventSubmitting, setBankEventSubmitting] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -70,7 +70,7 @@ export function CockpitShell() {
         setPhase(nextPhase);
         setError(null);
 
-        if (nextPhase === "bank") setBankFeedArmed(false);
+        if (nextPhase === "bank") setBankEventSubmitting(false);
       } catch (refreshError) {
         if (!cancelled) {
           setError(refreshError instanceof Error ? refreshError.message : String(refreshError));
@@ -87,38 +87,11 @@ export function CockpitShell() {
     };
   }, []);
 
-  useEffect(() => {
-    if (!bankFeedArmed) return;
-
-    let cancelled = false;
-    const interval = window.setInterval(() => {
-      void requestJson("/api/case-state")
-        .then((state) => {
-          if (cancelled) return;
-
-          const nextPhase = phaseFromState(state);
-          setPhase(nextPhase);
-
-          if (nextPhase === "bank") setBankFeedArmed(false);
-        })
-        .catch((pollError) => {
-          if (!cancelled) {
-            setError(pollError instanceof Error ? pollError.message : String(pollError));
-          }
-        });
-    }, 2000);
-
-    return () => {
-      cancelled = true;
-      window.clearInterval(interval);
-    };
-  }, [bankFeedArmed]);
-
   const controls = useMemo(
     () => ({
       simulateReply: async () => {
         try {
-          setBankFeedArmed(false);
+          setBankEventSubmitting(false);
           const result = await requestJson("/api/events/customer-reply", { method: "POST" });
           const nextPhase = phaseFromState(result);
 
@@ -136,22 +109,19 @@ export function CockpitShell() {
       },
       startBankFeed: async () => {
         try {
-          if (phase === "baseline") {
-            await requestJson("/api/events/customer-reply", { method: "POST" });
-            setPhase("reply");
-          }
-
-          await requestJson("/api/events/start-live-feed", { method: "POST" });
-
-          setBankFeedArmed(true);
+          setBankEventSubmitting(true);
+          await requestJson("/api/events/bank-transaction", { method: "POST" });
+          const state = await requestJson("/api/case-state");
+          setPhase(phaseFromState(state));
           setError(null);
         } catch (actionError) {
-          setBankFeedArmed(false);
           setError(actionError instanceof Error ? actionError.message : String(actionError));
+        } finally {
+          setBankEventSubmitting(false);
         }
       },
       reset: () => {
-        setBankFeedArmed(false);
+        setBankEventSubmitting(false);
         setPhase("baseline");
         setError(null);
       }
@@ -163,17 +133,15 @@ export function CockpitShell() {
     <main className="min-h-screen bg-[var(--bg)] text-[var(--text)]">
       <div className="mx-auto grid w-full max-w-[1400px] gap-3 px-4 pb-24 pt-3 sm:px-5 lg:px-6">
         <RiskCommandBar phase={phase} />
+        <DemoStepExplainer phase={phase} bankEventSubmitting={bankEventSubmitting} />
 
         {error ? <ErrorToast message={error} /> : null}
 
-        <section
-          aria-label="Forecast and plan"
-          className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_320px]"
-        >
-          <CashRunwayPanel bankFeedArmed={bankFeedArmed} phase={phase} />
+        <section aria-label="Forecast and plan" className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_320px]">
+          <CashRunwayPanel bankEventSubmitting={bankEventSubmitting} phase={phase} />
           <div className="grid gap-3">
             <PaymentPlanRecommendation phase={phase} />
-            <FounderBriefing phase={phase} />
+            <CustomerCommsPanel phase={phase} />
           </div>
         </section>
 
@@ -191,11 +159,11 @@ export function CockpitShell() {
         </section>
 
         <div className="sr-only" aria-live="polite">
-          Current cockpit state is {phase}. {bankFeedArmed ? "Bank feed timer is running." : ""}
+          Current cockpit state is {phase}. {bankEventSubmitting ? "Bank event is processing." : ""}
         </div>
 
         <FloatingDemoControls
-          bankFeedArmed={bankFeedArmed}
+          bankEventSubmitting={bankEventSubmitting}
           loading={loading}
           phase={phase}
           onReset={controls.reset}
@@ -204,6 +172,87 @@ export function CockpitShell() {
         />
       </div>
     </main>
+  );
+}
+
+function DemoStepExplainer({
+  phase,
+  bankEventSubmitting
+}: {
+  phase: DemoPhase;
+  bankEventSubmitting: boolean;
+}) {
+  const steps = [
+    {
+      label: "1",
+      title: "Customer reply",
+      body:
+        phase === "baseline"
+          ? "Click Step 1 to insert Northstar's conditional email into MongoDB."
+          : "\"Should be able to pay Friday once the PO is re-approved\" is stored as a conditional promise, so risk stays HIGH.",
+      active: phase === "baseline",
+      done: phase === "reply" || phase === "bank"
+    },
+    {
+      label: "2",
+      title: "Agent replan",
+      body:
+        phase === "bank"
+          ? "Harbour Labs paid GBP 1,200; the graph replanned the case immediately."
+          : "Click Step 2 after the reply to post the bank transaction with no timer delay.",
+      active: phase === "reply" || bankEventSubmitting,
+      done: phase === "bank"
+    },
+    {
+      label: "3",
+      title: "Approval decision",
+      body:
+        phase === "bank"
+          ? "Risk is WATCH, not SAFE. Approvals, audit proof, and memory are ready."
+          : "The screen shows why the agents recommend each action before anything is sent.",
+      active: phase === "bank",
+      done: phase === "bank"
+    }
+  ];
+
+  return (
+    <section
+      aria-label="Demo workflow"
+      className="grid gap-2 rounded-[var(--radius-lg)] border border-[var(--line)] bg-[var(--surface)]/82 p-3 shadow-[var(--shadow)] sm:grid-cols-3"
+    >
+      {steps.map((step) => (
+        <article
+          key={step.label}
+          className={`grid grid-cols-[2rem_1fr] gap-3 rounded-[var(--radius-sm)] border p-3 ${
+            step.active || step.done
+              ? "border-[rgba(245,166,35,0.45)] bg-[var(--amber-tint)]"
+              : "border-[var(--line)] bg-[var(--surface-muted)]"
+          }`}
+        >
+          <span
+            className={`grid h-8 w-8 place-items-center rounded-full text-sm font-semibold ${
+              step.done
+                ? "bg-[var(--green)] text-[#06150f]"
+                : step.active
+                  ? "bg-[var(--amber)] text-[#1a1100]"
+                  : "bg-[var(--surface-2)] text-[var(--text-muted)]"
+            }`}
+          >
+            {step.done ? "OK" : step.label}
+          </span>
+          <span className="min-w-0">
+            <strong className="block text-sm font-semibold tracking-tight text-[var(--text)]">
+              {step.title}
+            </strong>
+            <span className="mt-1 block text-[0.78rem] leading-5 text-[var(--text-muted)]">
+              {bankEventSubmitting && step.label === "2"
+                ? "Posting the bank transaction and rerunning LangGraph now..."
+                : step.body}
+            </span>
+          </span>
+        </article>
+      ))}
+    </section>
   );
 }
 
@@ -224,7 +273,7 @@ function ErrorToast({ message }: { message: string }) {
 
 function FloatingDemoControls(props: {
   phase: DemoPhase;
-  bankFeedArmed: boolean;
+  bankEventSubmitting: boolean;
   loading: boolean;
   onSimulateReply: () => void | Promise<void>;
   onStartBankFeed: () => void | Promise<void>;

@@ -8,17 +8,17 @@ import { phaseSummary, type DemoPhase } from "./cockpit-data";
 
 export function CashRunwayPanel({
   phase,
-  bankFeedArmed
+  bankEventSubmitting
 }: {
   phase: DemoPhase;
-  bankFeedArmed: boolean;
+  bankEventSubmitting: boolean;
 }) {
   return (
     <Panel
       icon={<TrendingUp size={16} aria-hidden />}
       action={
         <span className="text-[0.7rem] font-medium uppercase tracking-[0.12em] text-[var(--text-faint)]">
-          {bankFeedArmed ? "Live bank feed armed" : `Forecast ${phaseSummary[phase].forecastVersion}`}
+          {bankEventSubmitting ? "Processing bank event" : `Forecast ${phaseSummary[phase].forecastVersion}`}
         </span>
       }
       title="Cash runway forecast"

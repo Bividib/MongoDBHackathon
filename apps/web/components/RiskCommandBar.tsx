@@ -118,7 +118,7 @@ function Avatar() {
 }
 
 export function DemoControls({
-  bankFeedArmed,
+  bankEventSubmitting,
   loading,
   phase,
   onSimulateReply,
@@ -126,7 +126,7 @@ export function DemoControls({
   onReset
 }: {
   phase: DemoPhase;
-  bankFeedArmed: boolean;
+  bankEventSubmitting: boolean;
   loading: boolean;
   onSimulateReply: () => void | Promise<void>;
   onStartBankFeed: () => void | Promise<void>;
@@ -136,13 +136,13 @@ export function DemoControls({
     <div className="grid gap-2 sm:grid-cols-3">
       <ControlButton
         disabled={loading || phase !== "baseline"}
-        label="Simulate Customer A Reply"
+        label="Step 1: Simulate Customer Reply"
         onClick={onSimulateReply}
         variant="primary"
       />
       <ControlButton
-        disabled={loading || phase === "bank" || bankFeedArmed}
-        label={bankFeedArmed ? "Bank Feed Running…" : "Start Live Bank Feed"}
+        disabled={loading || phase !== "reply" || bankEventSubmitting}
+        label={bankEventSubmitting ? "Posting payment..." : "Step 2: Post GBP 1,200 Payment"}
         onClick={onStartBankFeed}
         variant="secondary"
       />
@@ -186,4 +186,3 @@ function ControlButton({
     </button>
   );
 }
-
