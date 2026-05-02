@@ -1,12 +1,12 @@
 "use client";
 
-import { Check, ChevronDown, Mail, Pencil, Phone, ShieldCheck, X } from "lucide-react";
+import { Check, ChevronDown, Mail, Phone, ShieldCheck, X } from "lucide-react";
 import type { ReactNode } from "react";
 import { useState } from "react";
 import { Panel } from "./Panel";
 import { draftRows, type OutreachChannel } from "./cockpit-data";
 
-type DraftDecision = "pending" | "approved-email" | "approved-voice" | "edit" | "rejected";
+type DraftDecision = "pending" | "approved-email" | "approved-voice" | "rejected";
 
 const channelLabel: Record<OutreachChannel, string> = {
   email: "Email",
@@ -59,12 +59,15 @@ export function DraftApprovalPanel() {
           const decision = decisions[draft.title] ?? "pending";
           const isApprovedEmail = decision === "approved-email";
           const isApprovedVoice = decision === "approved-voice";
-          const isEdit = decision === "edit";
           const isRejected = decision === "rejected";
           const isApproved = isApprovedEmail || isApprovedVoice;
           const recommendsEmail = draft.channel === "email" || draft.channel === "both";
           const recommendsPhone = draft.channel === "phone" || draft.channel === "both";
           const isOpen = openDraft === draft.title;
+          const showsBoth = recommendsEmail && recommendsPhone;
+          const buttonGridClass = showsBoth
+            ? "grid grid-cols-3 gap-1.5"
+            : "grid grid-cols-2 gap-1.5";
 
           return (
             <article
@@ -74,9 +77,7 @@ export function DraftApprovalPanel() {
                   ? "border-[var(--green)]/60 shadow-[0_0_24px_rgba(52,211,153,0.15)]"
                   : isRejected
                     ? "border-[rgba(239,106,74,0.55)] opacity-70"
-                    : isEdit
-                      ? "border-[var(--line-strong)]"
-                      : "border-[var(--line)] hover:border-[var(--line-strong)]"
+                    : "border-[var(--line)] hover:border-[var(--line-strong)]"
               }`}
             >
               <header className="flex items-start gap-2">
@@ -138,33 +139,31 @@ export function DraftApprovalPanel() {
                 </div>
               ) : null}
 
-              <div className="mt-auto grid gap-1.5">
-                <div className="grid grid-cols-2 gap-1.5">
-                  <PrimaryApprove
+              <div className={`mt-auto ${buttonGridClass}`}>
+                {recommendsEmail ? (
+                  <ApproveButton
                     active={isApprovedEmail}
-                    disabled={!recommendsEmail && !isApprovedEmail}
-                    label="Approve Email"
                     icon={<Mail size={12} aria-hidden />}
+                    label="Email"
+                    activeLabel="Approved"
+                    primary
                     onClick={() => setDecision(draft.title, "approved-email")}
                   />
-                  <SecondaryApprove
+                ) : null}
+                {recommendsPhone ? (
+                  <ApproveButton
                     active={isApprovedVoice}
-                    disabled={!recommendsPhone && !isApprovedVoice}
-                    label="Approve Voice"
                     icon={<Phone size={12} aria-hidden />}
+                    label="Voice Call"
+                    activeLabel="Approved"
+                    primary={!recommendsEmail}
                     onClick={() => setDecision(draft.title, "approved-voice")}
                   />
-                </div>
-                <div className="grid grid-cols-2 gap-1.5">
-                  <EditPill
-                    active={isEdit}
-                    onClick={() => setDecision(draft.title, "edit")}
-                  />
-                  <RejectPill
-                    active={isRejected}
-                    onClick={() => setDecision(draft.title, "rejected")}
-                  />
-                </div>
+                ) : null}
+                <RejectButton
+                  active={isRejected}
+                  onClick={() => setDecision(draft.title, "rejected")}
+                />
               </div>
             </article>
           );
@@ -201,14 +200,6 @@ function ChannelTag({
     return (
       <Tag tone="danger" icon={<X size={11} aria-hidden />}>
         Rejected
-      </Tag>
-    );
-  }
-
-  if (decision === "edit") {
-    return (
-      <Tag tone="neutral" icon={<Pencil size={10} aria-hidden />}>
-        Editing
       </Tag>
     );
   }
@@ -279,99 +270,64 @@ function ChannelPreview({
   );
 }
 
-function PrimaryApprove({
+function ApproveButton({
   active,
-  disabled,
   icon,
   label,
+  activeLabel,
+  primary,
   onClick
 }: {
   active: boolean;
-  disabled: boolean;
   icon: ReactNode;
   label: string;
+  activeLabel: string;
+  primary: boolean;
   onClick: () => void;
 }) {
+  const inactiveClass = primary
+    ? "bg-[var(--green)] text-[#0a1f15] shadow-[0_0_18px_rgba(52,211,153,0.35)] hover:bg-[#46e0a3] active:scale-[0.98]"
+    : "border border-[var(--green)]/55 bg-[rgba(52,211,153,0.08)] text-[var(--green)] hover:bg-[rgba(52,211,153,0.16)]";
+
+  const activeClass =
+    "bg-[var(--green)] text-[#0a1f15] ring-2 ring-[var(--green)] ring-offset-2 ring-offset-[var(--surface-muted)] shadow-[0_0_22px_rgba(52,211,153,0.55)]";
+
   return (
     <button
       aria-pressed={active}
-      className={`inline-flex min-h-9 items-center justify-center gap-1.5 rounded-full px-3 text-[0.72rem] font-semibold transition disabled:cursor-not-allowed disabled:opacity-40 ${
-        active
-          ? "bg-[var(--green)] text-[#0a1f15] ring-2 ring-[var(--green)] ring-offset-2 ring-offset-[var(--surface-muted)] shadow-[0_0_22px_rgba(52,211,153,0.55)]"
-          : "bg-[var(--amber)] text-[#1a1100] shadow-[var(--shadow-amber)] hover:bg-[var(--amber-soft)] active:scale-[0.98]"
+      aria-label={`${active ? activeLabel : `Approve ${label}`}`}
+      className={`inline-flex min-h-9 items-center justify-center gap-1.5 rounded-full px-3 text-[0.72rem] font-semibold transition ${
+        active ? activeClass : inactiveClass
       }`}
-      disabled={disabled}
       onClick={onClick}
       type="button"
     >
       {active ? <Check size={13} aria-hidden /> : icon}
-      {active ? "Email approved" : label}
+      <span className="leading-4">
+        {active ? activeLabel : `Approve ${label}`}
+      </span>
     </button>
   );
 }
 
-function SecondaryApprove({
-  active,
-  disabled,
-  icon,
-  label,
-  onClick
-}: {
-  active: boolean;
-  disabled: boolean;
-  icon: ReactNode;
-  label: string;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      aria-pressed={active}
-      className={`inline-flex min-h-9 items-center justify-center gap-1.5 rounded-full border px-3 text-[0.72rem] font-semibold transition disabled:cursor-not-allowed disabled:opacity-40 ${
-        active
-          ? "border-[var(--green)] bg-[rgba(52,211,153,0.18)] text-[var(--green)] ring-1 ring-[var(--green)]/40"
-          : "border-[rgba(245,166,35,0.55)] bg-transparent text-[var(--amber-soft)] hover:bg-[var(--amber-tint)]"
-      }`}
-      disabled={disabled}
-      onClick={onClick}
-      type="button"
-    >
-      {active ? <Check size={13} aria-hidden /> : icon}
-      {active ? "Voice approved" : label}
-    </button>
-  );
-}
+function RejectButton({ active, onClick }: { active: boolean; onClick: () => void }) {
+  const activeClass =
+    "bg-[var(--red)] text-[#1a0c08] ring-2 ring-[var(--red)] ring-offset-2 ring-offset-[var(--surface-muted)] shadow-[0_0_18px_rgba(239,106,74,0.45)]";
 
-function EditPill({ active, onClick }: { active: boolean; onClick: () => void }) {
-  return (
-    <button
-      aria-pressed={active}
-      className={`inline-flex min-h-8 items-center justify-center gap-1 rounded-full border px-3 text-[0.7rem] font-semibold transition ${
-        active
-          ? "border-[var(--text-muted)] bg-[var(--surface-2)] text-[var(--text)]"
-          : "border-[var(--line)] bg-transparent text-[var(--text-muted)] hover:border-[var(--line-strong)] hover:text-[var(--text)]"
-      }`}
-      onClick={onClick}
-      type="button"
-    >
-      <Pencil size={11} aria-hidden />
-      {active ? "Editing" : "Edit"}
-    </button>
-  );
-}
+  const inactiveClass =
+    "border border-[var(--red)]/55 bg-[rgba(239,106,74,0.06)] text-[var(--red)] hover:bg-[rgba(239,106,74,0.14)] active:scale-[0.98]";
 
-function RejectPill({ active, onClick }: { active: boolean; onClick: () => void }) {
   return (
     <button
       aria-pressed={active}
-      className={`inline-flex min-h-8 items-center justify-center gap-1 rounded-full border px-3 text-[0.7rem] font-semibold transition ${
-        active
-          ? "border-[var(--red)] bg-[rgba(239,106,74,0.16)] text-[var(--red)]"
-          : "border-[rgba(239,106,74,0.4)] bg-transparent text-[rgba(239,106,74,0.85)] hover:bg-[rgba(239,106,74,0.08)] hover:text-[var(--red)]"
+      aria-label={active ? "Rejected" : "Reject"}
+      className={`inline-flex min-h-9 items-center justify-center gap-1.5 rounded-full px-3 text-[0.72rem] font-semibold transition ${
+        active ? activeClass : inactiveClass
       }`}
       onClick={onClick}
       type="button"
     >
-      <X size={11} aria-hidden />
+      <X size={13} aria-hidden />
       {active ? "Rejected" : "Reject"}
     </button>
   );
