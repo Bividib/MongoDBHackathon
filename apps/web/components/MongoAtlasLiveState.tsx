@@ -20,30 +20,30 @@ export function MongoAtlasLiveState({ phase }: { phase: DemoPhase }) {
       }
       variant="default"
     >
-      <p className="m-0 text-[0.85rem] font-normal leading-6 text-[var(--text-muted)]">
+      <p className="m-0 text-[0.78rem] font-normal leading-5 text-[var(--text-muted)]">
         {snapshot.message}
       </p>
 
-      <dl className="m-0 mt-4 grid grid-cols-2 gap-2.5 p-0">
+      <dl className="m-0 mt-3 grid grid-cols-3 gap-1.5 p-0">
         {snapshot.counters.map((counter) => (
           <div
             key={counter.label}
-            className={`rounded-[var(--radius-sm)] border p-3 ${
+            className={`rounded-[var(--radius-sm)] border px-2.5 py-2 ${
               counter.highlight
                 ? "border-[rgba(245,166,35,0.45)] bg-[var(--amber-tint)] shadow-[var(--shadow-amber)]"
                 : "border-[var(--line)] bg-[var(--surface-muted)]"
             }`}
           >
             <dt
-              className={`m-0 text-[0.66rem] font-semibold uppercase tracking-[0.12em] ${
+              className={`m-0 text-[0.6rem] font-semibold uppercase tracking-[0.1em] ${
                 counter.highlight ? "text-[var(--amber-soft)]" : "text-[var(--text-faint)]"
               }`}
             >
               {counter.label}
             </dt>
-            <dd className="m-0 mt-1.5 flex items-baseline gap-2">
+            <dd className="m-0 mt-0.5 flex flex-wrap items-baseline gap-1">
               <span
-                className={`text-[1.05rem] font-semibold tabular ${
+                className={`text-[0.95rem] font-semibold tabular ${
                   counter.highlight ? "text-[var(--amber-soft)]" : "text-[var(--text)]"
                 }`}
               >
@@ -51,7 +51,7 @@ export function MongoAtlasLiveState({ phase }: { phase: DemoPhase }) {
               </span>
               {counter.hint ? (
                 <span
-                  className={`text-[0.7rem] font-medium ${
+                  className={`text-[0.62rem] font-medium ${
                     counter.highlight ? "text-[var(--amber-soft)]" : "text-[var(--text-faint)]"
                   }`}
                 >

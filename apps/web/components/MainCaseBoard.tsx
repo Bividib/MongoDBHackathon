@@ -1,4 +1,7 @@
-import { CalendarDays, TrendingUp } from "lucide-react";
+"use client";
+
+import { CalendarDays, ChevronDown, TrendingUp } from "lucide-react";
+import { useState } from "react";
 import { CashRunwayChart } from "./CashRunwayChart";
 import { Panel } from "./Panel";
 import { phaseSummary, type DemoPhase } from "./cockpit-data";
@@ -27,6 +30,7 @@ export function CashRunwayPanel({
 }
 
 export function PaymentPlanRecommendation({ phase }: { phase: DemoPhase }) {
+  const [expanded, setExpanded] = useState(false);
   const summary = phaseSummary[phase];
   const headline =
     phase === "bank"
@@ -48,42 +52,50 @@ export function PaymentPlanRecommendation({ phase }: { phase: DemoPhase }) {
       }
       variant="default"
     >
-      <div className="grid gap-4">
-        <div className="flex items-start gap-3">
-          <span
-            aria-hidden
-            className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-[var(--amber-tint)] text-[var(--amber)] shadow-[var(--shadow-amber)]"
-          >
-            <CalendarDays size={18} aria-hidden />
-          </span>
-          <div className="min-w-0">
-            <h3 className="m-0 text-[1rem] font-semibold tracking-tight text-[var(--text)]">
-              {headline}
-            </h3>
-            <p className="m-0 mt-1.5 text-[0.85rem] font-normal leading-6 text-[var(--text-muted)]">
-              {description}
-            </p>
-            <p className="m-0 mt-2 text-[0.72rem] font-medium text-[var(--text-faint)]">
-              {summary.supplierDetail}
-            </p>
-          </div>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-2">
-          <button
-            className="inline-flex min-h-10 items-center justify-center gap-2 rounded-full bg-[var(--amber)] px-4 text-sm font-semibold text-[#1a1100] shadow-[var(--shadow-amber)] transition hover:bg-[var(--amber-soft)]"
-            type="button"
-          >
-            Approve plan
-          </button>
-          <button
-            className="inline-flex min-h-10 items-center justify-center rounded-full border border-[var(--line-strong)] bg-transparent px-4 text-sm font-semibold text-[var(--text)] transition hover:border-[var(--amber)]/60 hover:text-[var(--amber-soft)]"
-            type="button"
-          >
-            View details
-          </button>
-        </div>
+      <div className="flex items-center gap-3">
+        <span
+          aria-hidden
+          className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-[var(--amber-tint)] text-[var(--amber)]"
+        >
+          <CalendarDays size={16} aria-hidden />
+        </span>
+        <h3 className="m-0 min-w-0 flex-1 text-[0.95rem] font-semibold leading-5 tracking-tight text-[var(--text)]">
+          {headline}
+        </h3>
       </div>
+
+      <div className="mt-3 flex flex-wrap items-center gap-2">
+        <button
+          className="inline-flex min-h-9 items-center justify-center gap-2 rounded-full bg-[var(--amber)] px-4 text-xs font-semibold text-[#1a1100] shadow-[var(--shadow-amber)] transition hover:bg-[var(--amber-soft)]"
+          type="button"
+        >
+          Approve plan
+        </button>
+        <button
+          aria-expanded={expanded}
+          className="inline-flex min-h-9 items-center justify-center gap-1 rounded-full border border-[var(--line-strong)] bg-transparent px-3 text-xs font-semibold text-[var(--text-muted)] transition hover:border-[var(--amber)]/60 hover:text-[var(--text)]"
+          onClick={() => setExpanded((value) => !value)}
+          type="button"
+        >
+          {expanded ? "Hide details" : "View details"}
+          <ChevronDown
+            aria-hidden
+            className={`transition ${expanded ? "rotate-180" : ""}`}
+            size={13}
+          />
+        </button>
+      </div>
+
+      {expanded ? (
+        <div className="mt-3 grid gap-2 rounded-[var(--radius-sm)] border border-[var(--line)] bg-[var(--surface-muted)] p-3">
+          <p className="m-0 text-[0.85rem] font-normal leading-6 text-[var(--text-muted)]">
+            {description}
+          </p>
+          <p className="m-0 text-[0.72rem] font-medium text-[var(--text-faint)]">
+            {summary.supplierDetail}
+          </p>
+        </div>
+      ) : null}
     </Panel>
   );
 }

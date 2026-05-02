@@ -18,8 +18,8 @@ export function RiskCommandBar({ phase }: RiskCommandBarProps) {
   const headlineTone = phase === "bank" ? "text-[var(--green)]" : "text-[var(--amber-soft)]";
 
   return (
-    <header className="rounded-[var(--radius-xl)] border border-[var(--line)] bg-[var(--bg-deep)]/80 px-5 py-4 shadow-[var(--shadow)] backdrop-blur">
-      <div className="flex flex-wrap items-center gap-x-8 gap-y-3">
+    <header className="rounded-[var(--radius-lg)] border border-[var(--line)] bg-[var(--bg-deep)]/80 px-4 py-3 shadow-[var(--shadow)] backdrop-blur">
+      <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
         <div className="flex items-center gap-2.5">
           <Logo />
           <span className="text-[1.05rem] font-semibold tracking-tight text-[var(--text)]">

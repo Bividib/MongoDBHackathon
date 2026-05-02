@@ -161,29 +161,30 @@ export function CockpitShell() {
 
   return (
     <main className="min-h-screen bg-[var(--bg)] text-[var(--text)]">
-      <div className="mx-auto grid w-full max-w-[1400px] gap-5 px-4 pb-28 pt-5 sm:px-6 lg:px-8">
+      <div className="mx-auto grid w-full max-w-[1400px] gap-3 px-4 pb-24 pt-3 sm:px-5 lg:px-6">
         <RiskCommandBar phase={phase} />
 
         {error ? <ErrorToast message={error} /> : null}
 
-        <CashRunwayPanel bankFeedArmed={bankFeedArmed} phase={phase} />
-
         <section
-          aria-label="Recommended actions"
-          className="grid gap-5 lg:grid-cols-[1.05fr_0.95fr]"
+          aria-label="Forecast and plan"
+          className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_320px]"
         >
-          <PaymentPlanRecommendation phase={phase} />
-          <FounderBriefing phase={phase} />
+          <CashRunwayPanel bankFeedArmed={bankFeedArmed} phase={phase} />
+          <div className="grid gap-3">
+            <PaymentPlanRecommendation phase={phase} />
+            <FounderBriefing phase={phase} />
+          </div>
         </section>
 
         <DraftApprovalPanel />
 
         <section
           aria-label="System state"
-          className="grid gap-5 lg:grid-cols-2"
+          className="grid gap-3 lg:grid-cols-[1fr_1fr]"
         >
           <AgentWorkers phase={phase} />
-          <div className="grid gap-5">
+          <div className="grid gap-3">
             <MongoAtlasLiveState phase={phase} />
             <AuditTrail phase={phase} />
           </div>

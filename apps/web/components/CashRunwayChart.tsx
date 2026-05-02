@@ -64,9 +64,9 @@ const yMin = -10000;
 const yMax = 15000;
 const yTicks = [15000, 10000, 5000, 0, -5000, -10000];
 
-const padding = { top: 30, right: 150, bottom: 36, left: 56 };
+const padding = { top: 28, right: 150, bottom: 30, left: 52 };
 const width = 780;
-const height = 320;
+const height = 240;
 const innerWidth = width - padding.left - padding.right;
 const innerHeight = height - padding.top - padding.bottom;
 
