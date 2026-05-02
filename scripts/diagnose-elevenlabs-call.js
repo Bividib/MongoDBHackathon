@@ -104,7 +104,6 @@ function buildPayload(args) {
   }
 
   const clientData = {
-    type: "conversation_initiation_client_data",
     dynamic_variables: {
       customer_name: customerName,
       invoice_number: invoiceNumber,
@@ -112,6 +111,10 @@ function buildPayload(args) {
       call_purpose: purpose,
     },
   };
+
+  if (args.mode !== "medible-shape" && args.mode !== "prompt-no-type") {
+    clientData.type = "conversation_initiation_client_data";
+  }
 
   if (args.branch) {
     clientData.branch_id = args.branch;
@@ -125,6 +128,25 @@ function buildPayload(args) {
     return {
       ...payload,
       conversation_initiation_client_data: clientData,
+      call_recording_enabled: false,
+    };
+  }
+
+  if (args.mode === "prompt-no-type" || args.mode === "medible-shape") {
+    return {
+      ...payload,
+      conversation_initiation_client_data: {
+        ...clientData,
+        conversation_config_override: {
+          agent: {
+            first_message: firstMessage,
+            language: "en",
+            prompt: {
+              prompt: buildPrompt({ purpose, customerName, invoiceNumber, amountGbp }),
+            },
+          },
+        },
+      },
       call_recording_enabled: false,
     };
   }
@@ -165,7 +187,7 @@ function buildPayload(args) {
   }
 
   throw new Error(
-    "Unknown --mode. Use minimal, recording-minimal, dynamic-only, first-message-only, legacy, or override."
+    "Unknown --mode. Use minimal, recording-minimal, dynamic-only, first-message-only, legacy, override, prompt-no-type, or medible-shape."
   );
 }
 

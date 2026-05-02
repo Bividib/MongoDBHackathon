@@ -101,16 +101,27 @@ Live diagnostics showed this boundary:
 ```text
 minimal outbound payload: connects
 first_message + dynamic_variables override: connects
-full prompt.prompt override: can fail before ElevenLabs accepts the call
+full prompt.prompt override with type field: can fail before ElevenLabs accepts the call
+full prompt.prompt override without type field: connects
 ```
 
-For the live demo, keep the API route to first-message and dynamic variable overrides only. Configure the ElevenLabs agent prompt in the ElevenLabs dashboard to use:
+For the live demo, use the Medible-style `conversation_initiation_client_data` shape:
 
-```text
-{{customer_name}}
-{{invoice_number}}
-{{amount_gbp}}
-{{call_purpose}}
+```json
+{
+  "conversation_initiation_client_data": {
+    "dynamic_variables": {},
+    "conversation_config_override": {
+      "agent": {
+        "first_message": "...",
+        "language": "en",
+        "prompt": {
+          "prompt": "..."
+        }
+      }
+    }
+  }
+}
 ```
 
-The dashboard prompt should include the safety rules above. This gives the agent the right call context without using the runtime `prompt.prompt` override that caused failed call handoffs in testing.
+Do not include `type: "conversation_initiation_client_data"` inside that object for the Twilio single-call route. Removing that field made runtime prompt overrides connect reliably in testing.
