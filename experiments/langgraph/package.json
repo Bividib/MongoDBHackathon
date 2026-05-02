@@ -1,0 +1,9 @@
+{
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@langchain/langgraph": "^0.4.8",
+    "tsx": "^4.20.6",
+    "typescript": "^5.9.3"
+  }
+}
