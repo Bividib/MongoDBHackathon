@@ -1,5 +1,13 @@
 {
+  "name": "runwayops",
+  "version": "0.1.0",
+  "private": true,
   "scripts": {
+    "dev": "next dev apps/web",
+    "build": "next build apps/web",
+    "start": "next start apps/web",
+    "typecheck": "tsc --project apps/web/tsconfig.json --noEmit",
+    "check-maths": "tsx scripts/check-maths.ts",
     "check:env": "node scripts/check-env.js",
     "check:db": "node scripts/check-mongo-connection.js",
     "check:providers": "node scripts/check-providers.js",
@@ -8,6 +16,22 @@
     "reset": "node scripts/reset-demo.js"
   },
   "dependencies": {
-    "mongodb": "^7.2.0"
+    "@langchain/langgraph": "latest",
+    "clsx": "latest",
+    "lucide-react": "latest",
+    "mongodb": "^7.2.0",
+    "next": "latest",
+    "react": "latest",
+    "react-dom": "latest",
+    "zod": "latest"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "latest",
+    "@types/node": "latest",
+    "@types/react": "latest",
+    "@types/react-dom": "latest",
+    "tailwindcss": "latest",
+    "tsx": "latest",
+    "typescript": "latest"
   }
 }

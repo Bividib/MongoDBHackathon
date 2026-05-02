@@ -1,7 +1,10 @@
 const fs = require("node:fs");
 const path = require("node:path");
 
-const envPath = path.join(process.cwd(), ".env");
+const envPaths = [
+  path.join(process.cwd(), ".env"),
+  path.join(process.cwd(), ".env.local"),
+];
 
 const requiredForMvp = [
   {
@@ -97,11 +100,17 @@ function loadDotEnv(filePath) {
   return values;
 }
 
+function loadLocalEnvFiles() {
+  return envPaths.reduce((merged, filePath) => {
+    return { ...merged, ...loadDotEnv(filePath) };
+  }, {});
+}
+
 function hasValue(env, names) {
   return names.some((name) => Boolean(env[name]));
 }
 
-const env = loadDotEnv(envPath);
+const env = loadLocalEnvFiles();
 
 console.log("RunwayOps environment readiness");
 
