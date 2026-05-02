@@ -81,6 +81,48 @@ type OutboundCallResult = {
   purposeSource: string;
 };
 
+type VoiceCallOutcomeRequest = {
+  conversationId?: unknown;
+  callSid?: unknown;
+  customerId?: unknown;
+  customerName?: unknown;
+  invoiceId?: unknown;
+  invoiceNumber?: unknown;
+  amountGbp?: unknown;
+  callAnswered?: unknown;
+  outcomeStatus?: unknown;
+  paymentTiming?: unknown;
+  blockers?: unknown;
+  summary?: unknown;
+  transcriptSummary?: unknown;
+  type?: unknown;
+  data?: unknown;
+};
+
+type VoiceCallOutcomeResult = {
+  ok: true;
+  conversationId: string;
+  callSid?: string;
+  outcomeStatus: string;
+  callAnswered: boolean;
+};
+
+type ResolvedVoiceCallOutcome = {
+  conversationId: string;
+  callSid?: string;
+  customerId?: string;
+  customerName?: string;
+  invoiceId?: string;
+  invoiceNumber?: string;
+  amountGbp?: number;
+  callAnswered: boolean;
+  outcomeStatus: string;
+  paymentTiming?: string;
+  blockers?: string;
+  summary?: string;
+  transcriptSummary?: string;
+};
+
 const DEFAULT_COMPANY_ID = "cmp_marlow_finch";
 const DEFAULT_CASE_ID = "case_payroll_2026_05_08";
 
@@ -369,6 +411,21 @@ function buildPayload(config: ElevenLabsConfig, context: OutreachContext) {
   };
 }
 
+async function fetchElevenLabsConversation(conversationId: string): Promise<Document> {
+  const config = getElevenLabsConfig();
+  const response = await fetch(`https://api.elevenlabs.io/v1/convai/conversations/${conversationId}`, {
+    headers: {
+      "xi-api-key": config.apiKey
+    }
+  });
+
+  if (!response.ok) {
+    throw new Error(`ElevenLabs conversation lookup failed: HTTP ${response.status}`);
+  }
+
+  return (await response.json()) as Document;
+}
+
 async function submitToElevenLabs(
   config: ElevenLabsConfig,
   context: OutreachContext
@@ -557,5 +614,233 @@ export async function submitApprovedOutboundCall(body: OutboundCallRequest): Pro
     recommendedChannel: recommendation.recommendedChannel,
     recommendationReason: recommendation.reason,
     purposeSource: context.purposeSource
+  };
+}
+
+function dataObject(value: unknown): Record<string, unknown> {
+  return typeof value === "object" && value !== null ? (value as Record<string, unknown>) : {};
+}
+
+function nestedObject(value: unknown, key: string): Record<string, unknown> {
+  return dataObject(dataObject(value)[key]);
+}
+
+function nestedString(value: unknown, ...path: string[]): string | undefined {
+  let current: unknown = value;
+
+  for (const key of path) {
+    current = dataObject(current)[key];
+  }
+
+  return optionalString(current);
+}
+
+function nestedNumber(value: unknown, ...path: string[]): number | undefined {
+  let current: unknown = value;
+
+  for (const key of path) {
+    current = dataObject(current)[key];
+  }
+
+  return typeof current === "number" && Number.isFinite(current) ? current : undefined;
+}
+
+function transcriptSummaryFromConversation(conversation: Document): string | undefined {
+  return nestedString(conversation, "analysis", "transcript_summary");
+}
+
+function outcomeFromConversation(conversation: Document): ResolvedVoiceCallOutcome {
+  const metadata = dataObject(conversation.metadata);
+  const acceptedAt = nestedNumber(conversation, "metadata", "accepted_time_unix_secs");
+  const durationSecs = nestedNumber(conversation, "metadata", "call_duration_secs") ?? 0;
+  const analysis = dataObject(conversation.analysis);
+  const transcript = Array.isArray(conversation.transcript) ? conversation.transcript : [];
+  const callAnswered = Boolean(acceptedAt) || durationSecs > 0 || transcript.length > 0;
+  const failureReason =
+    nestedString(conversation, "metadata", "termination_reason") ||
+    nestedString(conversation, "metadata", "error", "message");
+  const callSid = nestedString(conversation, "metadata", "phone_call", "call_sid");
+  const conversationId = asString(conversation.conversation_id, "conversationId");
+  const dynamicVariables = nestedObject(conversation, "conversation_initiation_client_data");
+  const variables = dataObject(dynamicVariables.dynamic_variables);
+
+  return {
+    conversationId,
+    callSid,
+    customerId: optionalString(variables.customer_id),
+    customerName: optionalString(variables.customer_name),
+    invoiceId: optionalString(variables.invoice_id),
+    invoiceNumber: optionalString(variables.invoice_number),
+    amountGbp: typeof variables.amount_gbp === "string" ? Number(variables.amount_gbp) : undefined,
+    callAnswered,
+    outcomeStatus:
+      optionalString(analysis.call_successful) ??
+      (callAnswered ? "completed" : failureReason || "no_answer"),
+    transcriptSummary: transcriptSummaryFromConversation(conversation),
+    summary: transcriptSummaryFromConversation(conversation) ?? (callAnswered ? "Call completed." : "Call was not answered."),
+    paymentTiming: nestedString(analysis, "data_collection_results", "payment_timing", "value"),
+    blockers: nestedString(analysis, "data_collection_results", "blockers", "value")
+  };
+}
+
+function outcomeFromWebhook(body: VoiceCallOutcomeRequest): ResolvedVoiceCallOutcome | null {
+  const data = dataObject(body.data);
+
+  if (body.type === "call_initiation_failure") {
+    return {
+      conversationId: asString(data.conversation_id, "conversationId"),
+      callSid: nestedString(data, "metadata", "body", "CallSid"),
+      callAnswered: false,
+      outcomeStatus: optionalString(data.failure_reason) ?? "call_initiation_failure",
+      summary: `Call initiation failed: ${optionalString(data.failure_reason) ?? "unknown"}.`
+    };
+  }
+
+  if (body.type === "post_call_transcription") {
+    return outcomeFromConversation(data as Document);
+  }
+
+  return null;
+}
+
+async function resolveOutcomeInput(body: VoiceCallOutcomeRequest): Promise<ResolvedVoiceCallOutcome> {
+  const webhookOutcome = outcomeFromWebhook(body);
+
+  if (webhookOutcome) {
+    return webhookOutcome;
+  }
+
+  const conversationId = asString(body.conversationId, "conversationId");
+  const providerConversation = await fetchElevenLabsConversation(conversationId);
+  const providerOutcome = outcomeFromConversation(providerConversation);
+
+  return {
+    ...providerOutcome,
+    callSid: optionalString(body.callSid) ?? providerOutcome.callSid,
+    customerId: optionalString(body.customerId) ?? providerOutcome.customerId,
+    customerName: optionalString(body.customerName) ?? providerOutcome.customerName,
+    invoiceId: optionalString(body.invoiceId) ?? providerOutcome.invoiceId,
+    invoiceNumber: optionalString(body.invoiceNumber) ?? providerOutcome.invoiceNumber,
+    amountGbp: body.amountGbp ? asAmountGbp(body.amountGbp) : providerOutcome.amountGbp,
+    callAnswered:
+      typeof body.callAnswered === "boolean" ? body.callAnswered : providerOutcome.callAnswered,
+    outcomeStatus: optionalString(body.outcomeStatus) ?? providerOutcome.outcomeStatus,
+    paymentTiming: optionalString(body.paymentTiming) ?? providerOutcome.paymentTiming,
+    blockers: optionalString(body.blockers) ?? providerOutcome.blockers,
+    summary: optionalString(body.summary) ?? providerOutcome.summary,
+    transcriptSummary: optionalString(body.transcriptSummary) ?? providerOutcome.transcriptSummary
+  };
+}
+
+export async function recordVoiceCallOutcome(body: VoiceCallOutcomeRequest): Promise<VoiceCallOutcomeResult> {
+  const db = await getMongoDb();
+  const outcome = await resolveOutcomeInput(body);
+  const artifact = await documents(db, "artifacts").findOne({ conversation_id: outcome.conversationId });
+  const now = new Date().toISOString();
+  const requestId = `voice_outcome_${Date.now()}_${randomUUID().slice(0, 8)}`;
+  const companyId = optionalString(artifact?.company_id) ?? DEFAULT_COMPANY_ID;
+  const caseId = optionalString(artifact?.case_id) ?? DEFAULT_CASE_ID;
+  const customerId = optionalString(outcome.customerId) ?? optionalString(artifact?.customer_id);
+  const invoiceId = optionalString(outcome.invoiceId) ?? optionalString(artifact?.invoice_id);
+  const invoiceNumber = optionalString(outcome.invoiceNumber) ?? optionalString(artifact?.invoice_number);
+  const callAnswered = outcome.callAnswered === true;
+  const outcomeStatus = optionalString(outcome.outcomeStatus) ?? (callAnswered ? "completed" : "no_answer");
+  const eventType = callAnswered ? "voice_call.completed" : "voice_call.no_answer";
+
+  await documents(db, "events").insertOne({
+    _id: `${requestId}_${eventType.replace(/\W/g, "_")}`,
+    event_key: `${eventType}:${outcome.conversationId}:${requestId}`,
+    event_type: eventType,
+    company_id: companyId,
+    case_id: caseId,
+    source: "api.voice.call-outcome",
+    occurred_at: now,
+    payload: {
+      masked_to_number: optionalString(artifact?.masked_to_number),
+      customer_id: customerId,
+      customer_name: optionalString(outcome.customerName),
+      invoice_id: invoiceId,
+      invoice_number: invoiceNumber,
+      conversation_id: outcome.conversationId,
+      call_sid: optionalString(outcome.callSid),
+      outcome_status: outcomeStatus,
+      call_answered: callAnswered,
+      payment_timing: optionalString(outcome.paymentTiming),
+      blockers: optionalString(outcome.blockers),
+      summary: optionalString(outcome.summary),
+      transcript_summary: optionalString(outcome.transcriptSummary)
+    }
+  });
+
+  await documents(db, "decision_log").insertOne({
+    _id: `${requestId}_voice_call_outcome`,
+    company_id: companyId,
+    case_id: caseId,
+    decision_type: "voice_call_outcome_captured",
+    summary: optionalString(outcome.summary) ?? `Voice call outcome captured: ${outcomeStatus}.`,
+    created_at: now,
+    conversation_id: outcome.conversationId,
+    call_sid: optionalString(outcome.callSid),
+    outcome_status: outcomeStatus,
+    payment_timing: optionalString(outcome.paymentTiming),
+    blockers: optionalString(outcome.blockers)
+  });
+
+  await documents(db, "artifacts").updateOne(
+    { conversation_id: outcome.conversationId },
+    {
+      $set: {
+        outcome_status: outcomeStatus,
+        call_answered: callAnswered,
+        outcome_captured_at: now,
+        payment_timing: optionalString(outcome.paymentTiming),
+        blockers: optionalString(outcome.blockers),
+        outcome_summary: optionalString(outcome.summary)
+      }
+    }
+  );
+
+  if (customerId) {
+    await documents(db, "customers").updateOne(
+      { _id: customerId },
+      {
+        $set: {
+          "last_voice_outreach.conversation_id": outcome.conversationId,
+          "last_voice_outreach.call_sid": optionalString(outcome.callSid),
+          "last_voice_outreach.outcome_status": outcomeStatus,
+          "last_voice_outreach.call_answered": callAnswered,
+          "last_voice_outreach.payment_timing": optionalString(outcome.paymentTiming),
+          "last_voice_outreach.blockers": optionalString(outcome.blockers),
+          "last_voice_outreach.summary": optionalString(outcome.summary),
+          "last_voice_outreach.updated_at": now,
+          "contact_response_profile.last_voice_outcome": outcomeStatus,
+          "contact_response_profile.last_voice_outcome_at": now
+        }
+      }
+    );
+  }
+
+  if (customerId && callAnswered && (outcome.paymentTiming || outcome.blockers || outcome.summary)) {
+    await documents(db, "memory_cards").insertOne({
+      _id: `${requestId}_voice_memory`,
+      company_id: companyId,
+      customer_id: customerId,
+      case_id: caseId,
+      memory_type: "voice_call_outcome",
+      summary: optionalString(outcome.summary) ?? "Voice call completed.",
+      payment_timing: optionalString(outcome.paymentTiming),
+      blockers: optionalString(outcome.blockers),
+      invoice_id: invoiceId,
+      invoice_number: invoiceNumber,
+      created_at: now
+    });
+  }
+
+  return {
+    ok: true,
+    conversationId: outcome.conversationId,
+    callSid: optionalString(outcome.callSid),
+    outcomeStatus,
+    callAnswered
   };
 }
