@@ -3,6 +3,13 @@ import type { Collection, Db, Document } from "mongodb";
 
 import { completeWithFireworks, getCachedFireworksCompletion, liveFireworksEnabled } from "./fireworks";
 import { getCachedBriefingAudioMetadata } from "./tts";
+import {
+  buildCustomerMemoryRetrievalContext,
+  buildDeterministicCustomerMemoryRetrieval,
+  retrieveCustomerMemoryEvidence,
+  type CustomerMemoryRetrievalResult,
+  type RetrievedEvidence
+} from "./vector-retrieval";
 
 export type JsonDocument = Document & { _id: string };
 
@@ -65,6 +72,7 @@ type CustomerMemoryEvidence = {
   preferredChannels: ContactChannel[];
   phoneContactConsent: boolean;
   explicitConfirmationRequired: boolean;
+  topEvidence?: RetrievedEvidence[];
 };
 
 type OutreachDecision = {
@@ -539,34 +547,52 @@ function parseClassificationText(text: string): Partial<ClassificationResult> | 
   }
 }
 
-function fallbackClassification(): ClassificationResult {
+function formatEvidenceForClassification(retrieval?: CustomerMemoryRetrievalResult): string {
+  if (!retrieval || retrieval.topEvidence.length === 0) {
+    return "No customer-memory evidence was retrieved.";
+  }
+
+  return retrieval.topEvidence
+    .map((evidence, index) => `${index + 1}. ${evidence.id}: ${evidence.snippet}`)
+    .join("\n");
+}
+
+function fallbackClassification(retrieval?: CustomerMemoryRetrievalResult): ClassificationResult {
   const cached = getCachedFireworksCompletion("northstar_reply_classification");
   const parsed = cached ? parseClassificationText(cached.text) : null;
+  const evidenceReason = retrieval?.memoryEvidence.behaviourSummary;
 
   return {
     classification: parsed?.classification ?? "conditional_promise",
     confidence: parsed?.confidence ?? 0.48,
     guaranteedCash: parsed?.guaranteedCash ?? false,
     llmMode: cached?.provider ?? "deterministic-fallback",
-    reason: parsed?.reason ?? "Payment depends on PO re-approval."
+    reason: evidenceReason ?? parsed?.reason ?? "Payment depends on PO re-approval."
   };
 }
 
-async function classifyCustomerReply(event: EventInboxDocument): Promise<ClassificationResult> {
+async function classifyCustomerReply(
+  event: EventInboxDocument,
+  retrieval?: CustomerMemoryRetrievalResult
+): Promise<ClassificationResult> {
   if (!liveFireworksEnabled()) {
-    return fallbackClassification();
+    return fallbackClassification(retrieval);
   }
 
   try {
     const completion = await completeWithFireworks({
       system:
-        "Classify customer payment replies for a cashflow workflow. Return only JSON with classification, confidence, is_guaranteed_cash, and reason.",
-      prompt: `Customer reply: ${String(eventPayload(event).message ?? "")}`
+        "Classify customer payment replies for a cashflow workflow. Use the retrieved evidence, but do not perform or infer cash calculations. Return only JSON with classification, confidence, is_guaranteed_cash, and reason.",
+      prompt: [
+        `Customer reply: ${String(eventPayload(event).message ?? "")}`,
+        "Retrieved evidence:",
+        formatEvidenceForClassification(retrieval)
+      ].join("\n")
     });
     const parsed = completion ? parseClassificationText(completion.text) : null;
 
     if (!completion || !parsed) {
-      return fallbackClassification();
+      return fallbackClassification(retrieval);
     }
 
     return {
@@ -577,7 +603,7 @@ async function classifyCustomerReply(event: EventInboxDocument): Promise<Classif
       reason: parsed.reason ?? "Payment depends on PO re-approval."
     };
   } catch {
-    return fallbackClassification();
+    return fallbackClassification(retrieval);
   }
 }
 
@@ -735,7 +761,7 @@ async function eventRouter(state: RunwayOpsStateType) {
   };
 }
 
-async function customerMemoryAgent(state: RunwayOpsStateType) {
+async function customerMemoryAgent(state: RunwayOpsStateType, db?: Db) {
   const { event, routeIntents } = state;
 
   if (!routeIntents.includes("handle_customer_reply")) {
@@ -754,18 +780,16 @@ async function customerMemoryAgent(state: RunwayOpsStateType) {
     };
   }
 
-  const classification = await classifyCustomerReply(event);
-  const topEvidenceIds = ["chunk_northstar_po_memory", "thread_northstar_inv_1042", "payhist_northstar"];
-  const memoryEvidence: CustomerMemoryEvidence = {
-    customerId: String(eventPayload(event).customer_id ?? "cust_northstar"),
-    invoiceId: String(eventPayload(event).invoice_id ?? "inv_1042"),
-    behaviourSummary:
-      "Northstar PO-dependent payment promises need explicit finance-team confirmation before being counted as payroll cash.",
-    evidenceIds: topEvidenceIds,
-    preferredChannels: ["email", "phone"],
-    phoneContactConsent: true,
-    explicitConfirmationRequired: true
-  };
+  const retrievalContext = buildCustomerMemoryRetrievalContext(event);
+  const retrieval = db
+    ? await retrieveCustomerMemoryEvidence(db, retrievalContext)
+    : buildDeterministicCustomerMemoryRetrieval(retrievalContext);
+  const classification = await classifyCustomerReply(event, retrieval);
+  const topEvidenceIds = retrieval.topEvidenceIds;
+  const memoryEvidence: CustomerMemoryEvidence = retrieval.memoryEvidence;
+  const retrievalSummary = retrieval.vectorSearchUsed
+    ? "Retrieved Northstar evidence with Fireworks embeddings and Atlas Vector Search."
+    : "Used deterministic Northstar customer-memory fallback after live vector retrieval was unavailable.";
 
   return {
     classification: classification.classification,
@@ -779,10 +803,26 @@ async function customerMemoryAgent(state: RunwayOpsStateType) {
           _id: "retrieval_northstar_reply_0504",
           company_id: event.company_id,
           case_id: event.case_id,
-          query: "Northstar INV-1042 PO re-approved pay Friday conditional promise payment history",
-          strategy: "hybrid_keyword_seeded_vector_fallback",
+          query: retrieval.query,
+          strategy: retrieval.strategy,
+          retrieval_status: retrieval.status,
+          collection: retrieval.collection,
+          vector_index: retrieval.vectorIndex,
+          vector_field: retrieval.vectorField,
+          ...(retrieval.vectorDimension ? { vector_dimension: retrieval.vectorDimension } : {}),
+          ...(retrieval.embeddingProvider ? { embedding_provider: retrieval.embeddingProvider } : {}),
+          ...(retrieval.embeddingModel ? { embedding_model: retrieval.embeddingModel } : {}),
+          ...(retrieval.embeddingModelResponse
+            ? { embedding_model_response: retrieval.embeddingModelResponse }
+            : {}),
           top_evidence_ids: topEvidenceIds,
-          sufficient: true,
+          top_evidence: retrieval.topEvidence,
+          expected_matches: retrieval.expectedMatches,
+          expected_metadata: retrieval.expectedMetadata,
+          vector_search_used: retrieval.vectorSearchUsed,
+          vector_search_attempted: retrieval.vectorSearchAttempted,
+          ...(retrieval.fallbackReason ? { fallback_reason: retrieval.fallbackReason } : {}),
+          sufficient: retrieval.sufficient,
           event_id: event._id,
           classification: classification.classification,
           confidence: classification.confidence,
@@ -792,7 +832,7 @@ async function customerMemoryAgent(state: RunwayOpsStateType) {
           explicit_confirmation_required: memoryEvidence.explicitConfirmationRequired,
           created_at: eventTimestamp(event)
         },
-        "Seeded hybrid-style retrieval record for customer memory and payment-history evidence."
+        "Customer Memory Agent retrieval evidence from Atlas Vector Search or deterministic fallback."
       ),
       customerClassifiedEvent(
         event,
@@ -806,7 +846,7 @@ async function customerMemoryAgent(state: RunwayOpsStateType) {
         agentName: "Customer Memory Agent",
         nodeName: "customerMemoryAgent",
         workerIndex: 2,
-        summary: "Retrieved Northstar evidence and classified the reply as conditional, not guaranteed cash.",
+        summary: `${retrievalSummary} Classified the reply as conditional, not guaranteed cash.`,
         output: {
           classification: classification.classification,
           confidence: classification.confidence,
@@ -814,6 +854,10 @@ async function customerMemoryAgent(state: RunwayOpsStateType) {
           reason: classification.reason,
           retrieval_attempt_id: "retrieval_northstar_reply_0504",
           topEvidenceIds,
+          topEvidence: retrieval.topEvidence,
+          vectorSearchUsed: retrieval.vectorSearchUsed,
+          vectorSearchAttempted: retrieval.vectorSearchAttempted,
+          fallbackReason: retrieval.fallbackReason,
           customerMemoryEvidence: memoryEvidence
         },
         llmMode: classification.llmMode
@@ -911,13 +955,17 @@ async function collectionsAgent(state: RunwayOpsStateType) {
     phoneContactConsent: true,
     explicitConfirmationRequired: true
   };
+  const primaryChannel = memoryEvidence.preferredChannels[0] ?? "email";
+  const fallbackChannel: ContactChannel =
+    memoryEvidence.phoneContactConsent && memoryEvidence.preferredChannels.includes("phone")
+      ? "phone"
+      : "email";
   const outreachDecision: OutreachDecision = {
-    primaryChannel: "email",
-    fallbackChannel: "phone",
+    primaryChannel,
+    fallbackChannel,
     primaryAction: "send_email_confirmation_first_after_human_approval",
     fallbackAction: "queue_approved_phone_call_if_email_reply_remains_ambiguous",
-    reason:
-      "Customer memory shows Northstar PO-dependent promises require explicit confirmation; email creates an auditable first ask, with a phone call only after approval if ambiguity remains.",
+    reason: `${memoryEvidence.behaviourSummary} Email creates an auditable first ask; phone remains an approval-required fallback if ambiguity remains.`,
     humanApprovalRequired: true,
     externalCommunicationSent: false
   };
@@ -931,8 +979,8 @@ async function collectionsAgent(state: RunwayOpsStateType) {
           _id: "draft_northstar_confirmation_v2",
           company_id: event.company_id,
           case_id: event.case_id,
-          customer_id: "cust_northstar",
-          invoice_id: "inv_1042",
+          customer_id: memoryEvidence.customerId,
+          invoice_id: memoryEvidence.invoiceId,
           channel: "email",
           status: "approval_required",
           outreach_strategy: "email_confirmation_first",
@@ -1030,6 +1078,7 @@ async function collectionsAgent(state: RunwayOpsStateType) {
           classification,
           confidence: classificationConfidence,
           memoryEvidence,
+          topEvidence: memoryEvidence.topEvidence ?? [],
           outreachDecision,
           requiresHumanApproval: true,
           externalCommunicationSent: false
@@ -1233,10 +1282,10 @@ async function auditLearningAgent(state: RunwayOpsStateType) {
   };
 }
 
-export function buildRunwayOpsGraph() {
+export function buildRunwayOpsGraph(db?: Db) {
   return new StateGraph(RunwayOpsState)
     .addNode("eventRouter", eventRouter)
-    .addNode("customerMemoryAgent", customerMemoryAgent)
+    .addNode("customerMemoryAgent", (state) => customerMemoryAgent(state, db))
     .addNode("forecastAgent", forecastAgent)
     .addNode("collectionsAgent", collectionsAgent)
     .addNode("paymentRunAgent", paymentRunAgent)
@@ -1352,7 +1401,7 @@ export async function applyWritePlan(db: Db, writePlan: WritePlanItem[]): Promis
 }
 
 export async function invokeRunwayOpsGraph(db: Db, event: EventInboxDocument) {
-  const graph = buildRunwayOpsGraph();
+  const graph = buildRunwayOpsGraph(db);
   const caseSnapshot = await hydrateCaseSnapshot(db, event);
 
   return graph.invoke(
