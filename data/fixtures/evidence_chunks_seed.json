@@ -4,8 +4,25 @@
     "company_id": "cmp_marlow_finch",
     "source_file_id": "src_inv_1042_pdf",
     "entity_ids": ["cust_northstar", "inv_1042"],
-    "text": "Northstar payment promises are conditional unless PO approval and payment date are explicitly confirmed.",
+    "text": "Northstar Studio payment promises for INV-1042 are conditional unless PO approval and the Friday payment date are explicitly confirmed.",
     "tags": ["customer_memory", "po_dependency", "collections"]
+  },
+  {
+    "_id": "thread_northstar_inv_1042",
+    "company_id": "cmp_marlow_finch",
+    "source_collection": "email_threads",
+    "source_document_id": "thread_northstar_inv_1042",
+    "entity_ids": ["cust_northstar", "inv_1042"],
+    "text": "Northstar Studio email thread for INV-1042: Marlow Finch asked when the invoice would be paid, and Northstar replied that the PO is being re-approved and they expect to resolve it soon. Treat this as a conditional payment promise that needs explicit Friday release confirmation.",
+    "tags": ["email_thread", "po_dependency", "collections"]
+  },
+  {
+    "_id": "chunk_inv_1042_evidence",
+    "company_id": "cmp_marlow_finch",
+    "source_file_id": "src_inv_1042_pdf",
+    "entity_ids": ["cust_northstar", "inv_1042"],
+    "text": "INV-1042 evidence for Northstar Studio: this customer invoice is the Friday receipt dependency in the payroll case, but payment should not be treated as guaranteed until PO re-approval and release timing are confirmed.",
+    "tags": ["invoice_evidence", "po_dependency", "collections"]
   },
   {
     "_id": "chunk_blue_finch_formal",
@@ -19,7 +36,7 @@
     "company_id": "cmp_marlow_finch",
     "source_file_id": "src_motionprint_terms",
     "entity_ids": ["sup_motionprint"],
-    "text": "MotionPrint terms allow a five-day no-penalty grace period. Payment can be held this week with low relationship risk.",
+    "text": "Supplier X, MotionPrint, has terms that allow a five-day no-penalty grace period. Payment can be held this week with low relationship risk while protecting Friday payroll runway.",
     "tags": ["supplier_terms", "payment_run"]
   }
 ]
