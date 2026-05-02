@@ -6,12 +6,18 @@ import { useState } from "react";
 import { Panel } from "./Panel";
 import { draftRows, type OutreachChannel } from "./cockpit-data";
 
-type DraftDecision = "pending" | "approved-email" | "approved-voice" | "rejected";
+type DraftDecision = "pending" | "approved" | "rejected";
 
 const channelLabel: Record<OutreachChannel, string> = {
   email: "Email",
   phone: "Phone",
   both: "Email + Phone"
+};
+
+const approveLabel: Record<OutreachChannel, string> = {
+  email: "Approve Email",
+  phone: "Approve Voice Call",
+  both: "Approve Both"
 };
 
 function channelIconNode(channel: OutreachChannel, size = 11): ReactNode {
@@ -57,17 +63,11 @@ export function DraftApprovalPanel() {
       <div className="grid gap-2.5 lg:grid-cols-3">
         {draftRows.map((draft, index) => {
           const decision = decisions[draft.title] ?? "pending";
-          const isApprovedEmail = decision === "approved-email";
-          const isApprovedVoice = decision === "approved-voice";
+          const isApproved = decision === "approved";
           const isRejected = decision === "rejected";
-          const isApproved = isApprovedEmail || isApprovedVoice;
           const recommendsEmail = draft.channel === "email" || draft.channel === "both";
           const recommendsPhone = draft.channel === "phone" || draft.channel === "both";
           const isOpen = openDraft === draft.title;
-          const showsBoth = recommendsEmail && recommendsPhone;
-          const buttonGridClass = showsBoth
-            ? "grid grid-cols-3 gap-1.5"
-            : "grid grid-cols-2 gap-1.5";
 
           return (
             <article
@@ -139,27 +139,12 @@ export function DraftApprovalPanel() {
                 </div>
               ) : null}
 
-              <div className={`mt-auto ${buttonGridClass}`}>
-                {recommendsEmail ? (
-                  <ApproveButton
-                    active={isApprovedEmail}
-                    icon={<Mail size={12} aria-hidden />}
-                    label="Email"
-                    activeLabel="Approved"
-                    primary
-                    onClick={() => setDecision(draft.title, "approved-email")}
-                  />
-                ) : null}
-                {recommendsPhone ? (
-                  <ApproveButton
-                    active={isApprovedVoice}
-                    icon={<Phone size={12} aria-hidden />}
-                    label="Voice Call"
-                    activeLabel="Approved"
-                    primary={!recommendsEmail}
-                    onClick={() => setDecision(draft.title, "approved-voice")}
-                  />
-                ) : null}
+              <div className="mt-auto grid grid-cols-2 gap-1.5">
+                <ApproveButton
+                  active={isApproved}
+                  channel={draft.channel}
+                  onClick={() => setDecision(draft.title, "approved")}
+                />
                 <RejectButton
                   active={isRejected}
                   onClick={() => setDecision(draft.title, "rejected")}
@@ -180,18 +165,10 @@ function ChannelTag({
   channel: OutreachChannel;
   decision: DraftDecision;
 }) {
-  if (decision === "approved-email") {
+  if (decision === "approved") {
     return (
       <Tag tone="success" icon={<Check size={11} aria-hidden />}>
-        Email approved
-      </Tag>
-    );
-  }
-
-  if (decision === "approved-voice") {
-    return (
-      <Tag tone="success" icon={<Check size={11} aria-hidden />}>
-        Voice approved
+        Approved
       </Tag>
     );
   }
@@ -230,9 +207,9 @@ function Tag({
     recommend:
       "bg-[var(--amber-tint)] text-[var(--amber-soft)] border border-[rgba(245,166,35,0.32)]",
     success:
-      "bg-[rgba(52,211,153,0.18)] text-[var(--green)] border border-[var(--green)]/50",
+      "bg-[var(--green)] text-[#0a1f15] border border-[var(--green)]",
     danger:
-      "bg-[rgba(239,106,74,0.18)] text-[var(--red)] border border-[var(--red)]/50",
+      "bg-[var(--red)] text-[#1a0c08] border border-[var(--red)]",
     neutral:
       "bg-[var(--surface)] text-[var(--text-muted)] border border-[var(--line-strong)]"
   };
@@ -272,63 +249,52 @@ function ChannelPreview({
 
 function ApproveButton({
   active,
-  icon,
-  label,
-  activeLabel,
-  primary,
+  channel,
   onClick
 }: {
   active: boolean;
-  icon: ReactNode;
-  label: string;
-  activeLabel: string;
-  primary: boolean;
+  channel: OutreachChannel;
   onClick: () => void;
 }) {
-  const inactiveClass = primary
-    ? "bg-[var(--green)] text-[#0a1f15] shadow-[0_0_18px_rgba(52,211,153,0.35)] hover:bg-[#46e0a3] active:scale-[0.98]"
-    : "border border-[var(--green)]/55 bg-[rgba(52,211,153,0.08)] text-[var(--green)] hover:bg-[rgba(52,211,153,0.16)]";
+  const baseClass =
+    "inline-flex min-h-9 items-center justify-center gap-1.5 rounded-full bg-[var(--green)] px-3 text-[0.72rem] font-semibold text-[#0a1f15] transition hover:bg-[#46e0a3] active:scale-[0.98]";
 
-  const activeClass =
-    "bg-[var(--green)] text-[#0a1f15] ring-2 ring-[var(--green)] ring-offset-2 ring-offset-[var(--surface-muted)] shadow-[0_0_22px_rgba(52,211,153,0.55)]";
+  const stateClass = active
+    ? "ring-2 ring-[var(--green)] ring-offset-2 ring-offset-[var(--surface-muted)] shadow-[0_0_22px_rgba(52,211,153,0.55)]"
+    : "shadow-[0_0_12px_rgba(52,211,153,0.25)]";
 
   return (
     <button
       aria-pressed={active}
-      aria-label={`${active ? activeLabel : `Approve ${label}`}`}
-      className={`inline-flex min-h-9 items-center justify-center gap-1.5 rounded-full px-3 text-[0.72rem] font-semibold transition ${
-        active ? activeClass : inactiveClass
-      }`}
+      aria-label={active ? "Approved" : approveLabel[channel]}
+      className={`${baseClass} ${stateClass}`}
       onClick={onClick}
       type="button"
     >
-      {active ? <Check size={13} aria-hidden /> : icon}
-      <span className="leading-4">
-        {active ? activeLabel : `Approve ${label}`}
-      </span>
+      {active ? <Check size={13} aria-hidden /> : channelIconNode(channel, 12)}
+      <span className="leading-4">{active ? "Approved" : approveLabel[channel]}</span>
     </button>
   );
 }
 
 function RejectButton({ active, onClick }: { active: boolean; onClick: () => void }) {
-  const activeClass =
-    "bg-[var(--red)] text-[#1a0c08] ring-2 ring-[var(--red)] ring-offset-2 ring-offset-[var(--surface-muted)] shadow-[0_0_18px_rgba(239,106,74,0.45)]";
+  const baseClass =
+    "inline-flex min-h-9 items-center justify-center gap-1.5 rounded-full bg-[var(--red)] px-3 text-[0.72rem] font-semibold text-[#1a0c08] transition hover:bg-[#ff7d5a] active:scale-[0.98]";
 
-  const inactiveClass =
-    "border border-[var(--red)]/55 bg-[rgba(239,106,74,0.06)] text-[var(--red)] hover:bg-[rgba(239,106,74,0.14)] active:scale-[0.98]";
+  const stateClass = active
+    ? "ring-2 ring-[var(--red)] ring-offset-2 ring-offset-[var(--surface-muted)] shadow-[0_0_22px_rgba(239,106,74,0.55)]"
+    : "shadow-[0_0_12px_rgba(239,106,74,0.25)]";
 
   return (
     <button
       aria-pressed={active}
       aria-label={active ? "Rejected" : "Reject"}
-      className={`inline-flex min-h-9 items-center justify-center gap-1.5 rounded-full px-3 text-[0.72rem] font-semibold transition ${
-        active ? activeClass : inactiveClass
-      }`}
+      className={`${baseClass} ${stateClass}`}
       onClick={onClick}
       type="button"
     >
       <X size={13} aria-hidden />
-      {active ? "Rejected" : "Reject"}
+      <span className="leading-4">{active ? "Rejected" : "Reject"}</span>
     </button>
   );
 }
