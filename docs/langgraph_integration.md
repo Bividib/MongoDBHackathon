@@ -8,6 +8,16 @@ The spike lives in:
 experiments/langgraph/runwayops-graph.ts
 ```
 
+Validated setup:
+
+```bash
+npm install --prefix experiments/langgraph
+npm --prefix experiments/langgraph run demo
+npm --prefix experiments/langgraph run test
+npm --prefix experiments/langgraph run typecheck
+npm run check:data
+```
+
 It models the six-worker flow from the implementation plan:
 
 ```text
@@ -48,6 +58,8 @@ memory_cards
 
 This keeps the six agents explainable: each worker produces documents the MongoDB Atlas Live State panel can show.
 
+LangGraph is the right layer for this because it is built for long-running, stateful workflow orchestration, human-in-the-loop control, durable execution, and LangSmith observability. MongoDB remains the durable operational state layer: case state, event history, tasks, retrieval attempts, forecasts, payment plans, decisions, memory, and checkpoint/resume data.
+
 ## Worker Responsibilities
 
 `eventRouter` classifies events, prevents duplicate work, and creates durable tasks.
@@ -81,7 +93,7 @@ LangGraph `interrupt()` can be added later, but it is not necessary for the firs
 
 ## Checkpointing
 
-The spike uses `MemorySaver` only to demonstrate the API. Production should be able to resume from MongoDB documents:
+The spike uses `MemorySaver` only to demonstrate the API. LangGraph's JavaScript docs use `MemorySaver` for local memory and recommend a database-backed checkpointer in production. For RunwayOps, production should be able to resume from MongoDB documents:
 
 ```text
 case state
@@ -99,3 +111,14 @@ The case ID should be the graph `thread_id`, for example:
 ```text
 case_payroll_2026_05_08
 ```
+
+## Why Not Deep Agents Yet
+
+Deep Agents are useful for open-ended research agents with planning tools, file-system tools, and subagents. RunwayOps is more constrained: each worker has a predictable job and must produce auditable MongoDB writes. The first production version should use `StateGraph` directly. Deep Agents UI can inspire future visual debugging, but the hackathon cockpit should be custom to the payroll-risk case.
+
+## References Checked
+
+- LangGraph overview: https://docs.langchain.com/oss/python/langgraph/overview
+- LangGraph.js memory and checkpointers: https://docs.langchain.com/oss/javascript/langgraph/add-memory
+- LangChain + MongoDB partnership: https://www.langchain.com/blog/announcing-the-langchain-mongodb-partnership-the-ai-agent-stack-that-runs-on-the-database-you-already-trust
+- Deep Agents quickstart: https://docs.langchain.com/oss/python/deepagents/quickstart

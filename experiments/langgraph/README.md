@@ -47,7 +47,9 @@ The root `package.json` in this checkout does not currently include `@langchain/
 
 ```bash
 npm install --prefix experiments/langgraph
-npx tsx experiments/langgraph/runwayops-graph.ts
+npm --prefix experiments/langgraph run demo
+npm --prefix experiments/langgraph run test
+npm --prefix experiments/langgraph run typecheck
 npm run check:data
 ```
 
@@ -57,6 +59,8 @@ If Person 1 later adds `@langchain/langgraph` and `tsx` to the root app, the com
 npm install
 npx tsx experiments/langgraph/runwayops-graph.ts
 ```
+
+The repo-root command above currently relies on `npx` auto-installing `tsx` because the production app has not yet adopted root LangGraph dependencies. The local experiment package is the pinned, reproducible setup.
 
 ## Adapting Into `apps/web/lib/orchestrator.ts`
 
@@ -99,5 +103,6 @@ Human approvals should stay outside this spike. Later, the graph can pause befor
 
 - Arithmetic stays deterministic in `forecastAgent`.
 - Retrieval and classification are mocked but structured the way Fireworks/vector retrieval would fill them in.
-- The graph uses `MemorySaver` to show checkpoint shape only. Production checkpoints should be backed by MongoDB state, not process memory.
+- The graph uses `MemorySaver` to show checkpoint shape only. LangGraph's JavaScript docs recommend database-backed checkpointers for production, so RunwayOps should resume from MongoDB case/event/task documents rather than process memory.
 - No provider keys are read in this experiment.
+- Deep Agents and Deep Agents UI are intentionally not used here. They are useful for open-ended research/planning agents, but RunwayOps needs a narrow, deterministic, event-routed workflow with explicit MongoDB write plans.

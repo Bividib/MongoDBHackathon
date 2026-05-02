@@ -1,10 +1,11 @@
+import { pathToFileURL } from "node:url";
 import { Annotation, END, MemorySaver, START, StateGraph } from "@langchain/langgraph";
 
-type RiskLevel = "HIGH" | "WATCH" | "SAFE";
-type EventType = "customer.email_reply" | "bank.transaction.posted";
-type AgentStatus = "completed" | "skipped";
+export type RiskLevel = "HIGH" | "WATCH" | "SAFE";
+export type EventType = "customer.email_reply" | "bank.transaction.posted";
+export type AgentStatus = "completed" | "skipped";
 
-type EventDocument = {
+export type EventDocument = {
   _id: string;
   event_key: string;
   company_id: string;
@@ -15,7 +16,7 @@ type EventDocument = {
   payload: Record<string, unknown>;
 };
 
-type WritePlanItem = {
+export type WritePlanItem = {
   collection:
     | "events"
     | "tasks"
@@ -31,13 +32,13 @@ type WritePlanItem = {
   why: string;
 };
 
-type RouteIntent =
+export type RouteIntent =
   | "handle_customer_reply"
   | "handle_bank_transaction"
   | "skip_customer_memory"
   | "skip_collections";
 
-type CaseSnapshot = {
+export type CaseSnapshot = {
   riskLevel: RiskLevel;
   currentCashGbp: number;
   payrollDueGbp: number;
@@ -56,7 +57,7 @@ type AgentRunInput = {
   output?: Record<string, unknown>;
 };
 
-const BASELINE_CASE: CaseSnapshot = {
+export const BASELINE_CASE: CaseSnapshot = {
   riskLevel: "HIGH",
   currentCashGbp: 8400,
   payrollDueGbp: 11200,
@@ -66,7 +67,7 @@ const BASELINE_CASE: CaseSnapshot = {
   paymentPlanVersion: 1,
 };
 
-const NorthstarReplyEvent: EventDocument = {
+export const NorthstarReplyEvent: EventDocument = {
   _id: "inbox_northstar_reply_0504",
   event_key: "email:reply:northstar:inv_1042:conditional_po",
   company_id: "cmp_marlow_finch",
@@ -81,7 +82,7 @@ const NorthstarReplyEvent: EventDocument = {
   },
 };
 
-const HarbourLabsBankEvent: EventDocument = {
+export const HarbourLabsBankEvent: EventDocument = {
   _id: "inbox_harbour_retainer_0504",
   event_key: "bank:transaction:harbour_labs_retainer:1200",
   company_id: "cmp_marlow_finch",
@@ -511,7 +512,7 @@ async function auditLearningAgent(state: RunwayOpsStateType) {
   };
 }
 
-function buildGraph() {
+export function buildGraph() {
   return new StateGraph(RunwayOpsState)
     .addNode("eventRouter", eventRouter)
     .addNode("customerMemoryAgent", customerMemoryAgent)
@@ -531,16 +532,17 @@ function buildGraph() {
     });
 }
 
-function summarizeWritePlan(writePlan: WritePlanItem[]) {
+export function summarizeWritePlan(writePlan: WritePlanItem[]) {
   return writePlan.reduce<Record<string, number>>((summary, item) => {
     summary[item.collection] = (summary[item.collection] || 0) + 1;
     return summary;
   }, {});
 }
 
-async function runScenario(name: string, event: EventDocument) {
+export async function invokeRunwayOpsGraph(event: EventDocument) {
   const graph = buildGraph();
-  const result = await graph.invoke(
+
+  return graph.invoke(
     {
       event,
       caseSnapshot: BASELINE_CASE,
@@ -555,6 +557,10 @@ async function runScenario(name: string, event: EventDocument) {
       },
     },
   );
+}
+
+export async function runScenario(name: string, event: EventDocument) {
+  const result = await invokeRunwayOpsGraph(event);
 
   console.log(`\n=== ${name} ===`);
   console.log(`thread_id=${event.case_id}`);
@@ -564,7 +570,13 @@ async function runScenario(name: string, event: EventDocument) {
   console.log(`paymentPlanVersion=${result.paymentPlanVersion}`);
   console.log("writePlanSummary=", JSON.stringify(summarizeWritePlan(result.writePlan), null, 2));
   console.log("writePlan=", JSON.stringify(result.writePlan, null, 2));
+
+  return result;
 }
 
-await runScenario("Run 1: Northstar ambiguous reply", NorthstarReplyEvent);
-await runScenario("Run 2: Harbour Labs bank event", HarbourLabsBankEvent);
+const isMain = process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href;
+
+if (isMain) {
+  await runScenario("Run 1: Northstar ambiguous reply", NorthstarReplyEvent);
+  await runScenario("Run 2: Harbour Labs bank event", HarbourLabsBankEvent);
+}

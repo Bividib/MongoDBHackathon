@@ -1,9 +1,17 @@
 {
   "private": true,
   "type": "module",
+  "scripts": {
+    "demo": "tsx runwayops-graph.ts",
+    "test": "tsx assert-runwayops-graph.ts",
+    "typecheck": "tsc --noEmit"
+  },
   "dependencies": {
     "@langchain/langgraph": "^0.4.8",
     "tsx": "^4.20.6",
     "typescript": "^5.9.3"
+  },
+  "devDependencies": {
+    "@types/node": "^25.6.0"
   }
 }
