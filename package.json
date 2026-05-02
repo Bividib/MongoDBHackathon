@@ -12,6 +12,8 @@
     "check:db": "node scripts/check-mongo-connection.js",
     "check:providers": "node scripts/check-providers.js",
     "check:data": "node scripts/check-data.js",
+    "embed:evidence": "node scripts/embed-evidence-fireworks.js",
+    "check:vector": "node scripts/check-fireworks-vector-search.js",
     "elevenlabs:phones": "node scripts/list-elevenlabs-phone-numbers.js",
     "elevenlabs:import-twilio": "node scripts/import-elevenlabs-twilio-number.js",
     "elevenlabs:assign-agent": "node scripts/assign-elevenlabs-phone-agent.js",
