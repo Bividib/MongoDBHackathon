@@ -43,6 +43,8 @@ type RouteIntent =
   | "skip_customer_memory"
   | "skip_collections";
 
+type ContactChannel = "email" | "phone";
+
 type CaseSnapshot = {
   caseId: string;
   companyId: string;
@@ -53,6 +55,26 @@ type CaseSnapshot = {
   northstarInvoiceGbp: number;
   forecastVersion: number;
   paymentPlanVersion: number;
+};
+
+type CustomerMemoryEvidence = {
+  customerId: string;
+  invoiceId: string;
+  behaviourSummary: string;
+  evidenceIds: string[];
+  preferredChannels: ContactChannel[];
+  phoneContactConsent: boolean;
+  explicitConfirmationRequired: boolean;
+};
+
+type OutreachDecision = {
+  primaryChannel: ContactChannel;
+  fallbackChannel: ContactChannel;
+  primaryAction: string;
+  fallbackAction: string;
+  reason: string;
+  humanApprovalRequired: boolean;
+  externalCommunicationSent: false;
 };
 
 type ClassificationResult = {
@@ -123,6 +145,14 @@ const RunwayOpsState = Annotation.Root({
     default: () => undefined
   }),
   llmMode: Annotation<string | undefined>({
+    reducer: (_left, right) => right,
+    default: () => undefined
+  }),
+  customerMemoryEvidence: Annotation<CustomerMemoryEvidence | undefined>({
+    reducer: (_left, right) => right,
+    default: () => undefined
+  }),
+  outreachDecision: Annotation<OutreachDecision | undefined>({
     reducer: (_left, right) => right,
     default: () => undefined
   }),
@@ -293,7 +323,8 @@ function task(
   event: EventInboxDocument,
   taskType: string,
   assignedAgent: string,
-  status = "queued"
+  status = "queued",
+  extra: Record<string, unknown> = {}
 ): WritePlanItem {
   return replaceWrite(
     "tasks",
@@ -306,7 +337,8 @@ function task(
       task_type: taskType,
       assigned_agent: assignedAgent,
       status,
-      created_at: eventTimestamp(event)
+      created_at: eventTimestamp(event),
+      ...extra
     },
     "Durable work item created by the event router for the worker pipeline."
   );
@@ -724,11 +756,22 @@ async function customerMemoryAgent(state: RunwayOpsStateType) {
 
   const classification = await classifyCustomerReply(event);
   const topEvidenceIds = ["chunk_northstar_po_memory", "thread_northstar_inv_1042", "payhist_northstar"];
+  const memoryEvidence: CustomerMemoryEvidence = {
+    customerId: String(eventPayload(event).customer_id ?? "cust_northstar"),
+    invoiceId: String(eventPayload(event).invoice_id ?? "inv_1042"),
+    behaviourSummary:
+      "Northstar PO-dependent payment promises need explicit finance-team confirmation before being counted as payroll cash.",
+    evidenceIds: topEvidenceIds,
+    preferredChannels: ["email", "phone"],
+    phoneContactConsent: true,
+    explicitConfirmationRequired: true
+  };
 
   return {
     classification: classification.classification,
     classificationConfidence: classification.confidence,
     llmMode: classification.llmMode,
+    customerMemoryEvidence: memoryEvidence,
     writePlan: [
       replaceWrite(
         "retrieval_attempts",
@@ -743,6 +786,10 @@ async function customerMemoryAgent(state: RunwayOpsStateType) {
           event_id: event._id,
           classification: classification.classification,
           confidence: classification.confidence,
+          behaviour_summary: memoryEvidence.behaviourSummary,
+          preferred_channels: memoryEvidence.preferredChannels,
+          phone_contact_consent: memoryEvidence.phoneContactConsent,
+          explicit_confirmation_required: memoryEvidence.explicitConfirmationRequired,
           created_at: eventTimestamp(event)
         },
         "Seeded hybrid-style retrieval record for customer memory and payment-history evidence."
@@ -766,7 +813,8 @@ async function customerMemoryAgent(state: RunwayOpsStateType) {
           guaranteedCash: classification.guaranteedCash,
           reason: classification.reason,
           retrieval_attempt_id: "retrieval_northstar_reply_0504",
-          topEvidenceIds
+          topEvidenceIds,
+          customerMemoryEvidence: memoryEvidence
         },
         llmMode: classification.llmMode
       })
@@ -835,7 +883,7 @@ async function forecastAgent(state: RunwayOpsStateType) {
 }
 
 async function collectionsAgent(state: RunwayOpsStateType) {
-  const { event, classification, classificationConfidence, routeIntents } = state;
+  const { event, classification, classificationConfidence, customerMemoryEvidence, routeIntents } = state;
 
   if (routeIntents.includes("skip_collections") || !routeIntents.includes("handle_customer_reply")) {
     return {
@@ -853,7 +901,29 @@ async function collectionsAgent(state: RunwayOpsStateType) {
     };
   }
 
+  const memoryEvidence: CustomerMemoryEvidence = customerMemoryEvidence ?? {
+    customerId: "cust_northstar",
+    invoiceId: "inv_1042",
+    behaviourSummary:
+      "Northstar PO-dependent payment promises need explicit finance-team confirmation before being counted as payroll cash.",
+    evidenceIds: ["chunk_northstar_po_memory", "thread_northstar_inv_1042", "payhist_northstar"],
+    preferredChannels: ["email", "phone"],
+    phoneContactConsent: true,
+    explicitConfirmationRequired: true
+  };
+  const outreachDecision: OutreachDecision = {
+    primaryChannel: "email",
+    fallbackChannel: "phone",
+    primaryAction: "send_email_confirmation_first_after_human_approval",
+    fallbackAction: "queue_approved_phone_call_if_email_reply_remains_ambiguous",
+    reason:
+      "Customer memory shows Northstar PO-dependent promises require explicit confirmation; email creates an auditable first ask, with a phone call only after approval if ambiguity remains.",
+    humanApprovalRequired: true,
+    externalCommunicationSent: false
+  };
+
   return {
+    outreachDecision,
     writePlan: [
       replaceWrite(
         "collection_drafts",
@@ -863,17 +933,90 @@ async function collectionsAgent(state: RunwayOpsStateType) {
           case_id: event.case_id,
           customer_id: "cust_northstar",
           invoice_id: "inv_1042",
+          channel: "email",
           status: "approval_required",
+          outreach_strategy: "email_confirmation_first",
           subject: "Please confirm PO approval and Friday payment for INV-1042",
           body:
             "Hi Maya, thanks for the update. Before we count INV-1042 toward Friday payroll, can your finance team confirm the PO is re-approved and that payment will be released on Friday 8 May?",
           tone: "direct finance-team wording",
+          next_step_if_ambiguous: "approval_required_phone_call",
+          external_send_requires_approval: true,
           source_event_id: event._id,
           created_at: eventTimestamp(event)
         },
         "Approval-ready Northstar follow-up drafted by Collections Agent."
       ),
-      task(event, "approve_northstar_confirmation_email", "human_founder", "approval_required"),
+      replaceWrite(
+        "collection_drafts",
+        {
+          _id: "draft_northstar_phone_followup_v1",
+          company_id: event.company_id,
+          case_id: event.case_id,
+          customer_id: memoryEvidence.customerId,
+          invoice_id: memoryEvidence.invoiceId,
+          channel: "phone",
+          status: "approval_required",
+          outreach_strategy: "fallback_if_email_remains_ambiguous",
+          call_automatically: false,
+          phone_contact_consent: memoryEvidence.phoneContactConsent,
+          script:
+            "Hi Maya, this is Emma from Marlow & Finch. We saw your note about INV-1042 and the PO re-approval. Could you confirm whether the PO is now approved and whether payment will definitely be released on Friday 8 May?",
+          trigger_condition:
+            "Use only if the approved email follow-up receives another ambiguous or PO-dependent reply.",
+          external_call_requires_approval: true,
+          source_event_id: event._id,
+          created_at: eventTimestamp(event)
+        },
+        "Approval-required phone fallback script; no external call is placed automatically."
+      ),
+      task(
+        event,
+        "approve_northstar_confirmation_email",
+        "human_founder",
+        "approval_required",
+        {
+          channel: "email",
+          draft_id: "draft_northstar_confirmation_v2",
+          external_communication_sent: false
+        }
+      ),
+      task(
+        event,
+        "approve_northstar_phone_followup_if_ambiguous",
+        "human_founder",
+        "approval_required",
+        {
+          channel: "phone",
+          draft_id: "draft_northstar_phone_followup_v1",
+          trigger_condition: "only_if_email_reply_remains_ambiguous",
+          call_automatically: false,
+          external_communication_sent: false
+        }
+      ),
+      replaceWrite(
+        "decision_log",
+        {
+          _id: "decision_outreach_northstar_0504",
+          company_id: event.company_id,
+          case_id: event.case_id,
+          event_id: event._id,
+          decision_type: "adaptive_outreach_selection",
+          summary:
+            "Collections selected email confirmation first for Northstar, with an approval-required phone call fallback only if the next reply remains ambiguous.",
+          risk_after: "HIGH",
+          selected_channel: outreachDecision.primaryChannel,
+          fallback_channel: outreachDecision.fallbackChannel,
+          primary_action: outreachDecision.primaryAction,
+          fallback_action: outreachDecision.fallbackAction,
+          reason: outreachDecision.reason,
+          evidence_ids: memoryEvidence.evidenceIds,
+          human_approval_required: outreachDecision.humanApprovalRequired,
+          external_communication_sent: outreachDecision.externalCommunicationSent,
+          created_at: eventTimestamp(event)
+        },
+        "Auditable adaptive outreach decision from Collections Agent."
+      ),
       agentRun({
         event,
         agentId: "collections_agent",
@@ -883,9 +1026,13 @@ async function collectionsAgent(state: RunwayOpsStateType) {
         summary: "Drafted an approval-ready Northstar confirmation request.",
         output: {
           draft_id: "draft_northstar_confirmation_v2",
+          fallback_draft_id: "draft_northstar_phone_followup_v1",
           classification,
           confidence: classificationConfidence,
-          requiresHumanApproval: true
+          memoryEvidence,
+          outreachDecision,
+          requiresHumanApproval: true,
+          externalCommunicationSent: false
         }
       })
     ]
@@ -951,7 +1098,15 @@ async function paymentRunAgent(state: RunwayOpsStateType) {
 }
 
 async function auditLearningAgent(state: RunwayOpsStateType) {
-  const { event, forecastVersion, paymentPlanVersion, riskLevel, classification, classificationConfidence } = state;
+  const {
+    event,
+    forecastVersion,
+    paymentPlanVersion,
+    riskLevel,
+    classification,
+    classificationConfidence,
+    outreachDecision
+  } = state;
 
   if (!SUPPORTED_EVENT_TYPES.has(event.event_type)) {
     return {
@@ -985,7 +1140,8 @@ async function auditLearningAgent(state: RunwayOpsStateType) {
             forecast_version: forecastVersion,
             payment_plan_version: paymentPlanVersion,
             classification,
-            confidence: classificationConfidence
+            confidence: classificationConfidence,
+            outreach_decision: outreachDecision
           },
           "Founder-readable decision trail for the conditional customer reply."
         ),
@@ -1000,7 +1156,8 @@ async function auditLearningAgent(state: RunwayOpsStateType) {
             decision_id: "decision_customer_reply_0504",
             forecastVersion,
             paymentPlanVersion,
-            riskLevel
+            riskLevel,
+            outreachDecision
           }
         })
       ]
