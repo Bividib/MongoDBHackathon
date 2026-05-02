@@ -32,6 +32,32 @@ Check provider authentication:
 npm run check:providers
 ```
 
+List outbound-capable ElevenLabs phone numbers:
+
+```bash
+npm run elevenlabs:phones
+```
+
+Import the configured Twilio number into ElevenLabs:
+
+```bash
+npm run elevenlabs:import-twilio
+```
+
+Assign the imported ElevenLabs phone number to the configured agent:
+
+```bash
+npm run elevenlabs:assign-agent
+```
+
+Submit a dry-run outbound call request:
+
+```bash
+npm run call:test -- --to 07490000000 --purpose "Confirm payment timing for INV-1042"
+```
+
+Add `--send` only when the recipient has consented to receive the test call.
+
 Validate the synthetic data pack:
 
 ```bash

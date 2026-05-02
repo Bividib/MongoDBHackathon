@@ -30,9 +30,18 @@ const requiredForMvp = [
     label: "ElevenLabs API key",
   },
   {
+    names: ["ELEVENLABS_AGENT_ID", "ELEVEN_LABS_AGENT_ID"],
+    label: "ElevenLabs agent ID",
+  },
+  {
     names: ["ELEVENLABS_VOICE_ID"],
     label: "ElevenLabs voice ID",
     fallback: "can be added later before voice briefing",
+  },
+  {
+    names: ["ELEVENLABS_AGENT_PHONE_NUMBER_ID", "ELEVEN_LABS_AGENT_PHONE_NUMBER_ID"],
+    label: "ElevenLabs agent phone number ID",
+    fallback: "required before outbound phone calls",
   },
   {
     names: ["VOYAGE_API_KEY"],
@@ -61,6 +70,12 @@ const optionalTracing = [
     names: ["LANGCHAIN_PROJECT"],
     label: "LangSmith project",
   },
+];
+
+const optionalTwilio = [
+  "TWILIO_ACCOUNT_SID",
+  "TWILIO_AUTH_TOKEN",
+  "TWILIO_PHONE_NUMBER",
 ];
 
 function loadDotEnv(filePath) {
@@ -137,4 +152,11 @@ for (const item of optionalTracing) {
   const status = ready ? "OK" : "MISSING";
 
   console.log(`${status} ${item.label}: ${item.names.join(" or ")}`);
+}
+
+console.log("");
+console.log("Optional Twilio/ElevenLabs telephony configuration");
+
+for (const name of optionalTwilio) {
+  console.log(`${env[name] ? "OK" : "MISSING"} ${name}`);
 }

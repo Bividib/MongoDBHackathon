@@ -66,7 +66,7 @@ Important security note:
 
 ```text
 Do not commit MongoDB, Fireworks, ElevenLabs, or AWS secrets.
-Use .env.local for local development and .env.example for placeholders.
+Use `.env` for local development and `.env.example` for placeholders.
 Rotate any credentials that were pasted into chat before publishing the repo.
 ```
 
@@ -408,7 +408,7 @@ DEMO_COMPANY_ID=cmp_marlow_finch
 DEMO_CASE_ID=case_payroll_2026_05_08
 ```
 
-Local-only `.env.local` should contain real secrets.
+Local-only `.env` should contain real secrets.
 
 ## 9. Repo Structure
 

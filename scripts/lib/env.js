@@ -55,7 +55,20 @@ function getMongoConfig() {
   return { uri, dbName };
 }
 
+function getEnvValue(...names) {
+  loadDotEnv();
+
+  for (const name of names) {
+    if (process.env[name]) {
+      return process.env[name];
+    }
+  }
+
+  return undefined;
+}
+
 module.exports = {
+  getEnvValue,
   getMongoConfig,
   loadDotEnv,
   loadLocalEnvFiles,

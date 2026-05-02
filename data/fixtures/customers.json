@@ -6,7 +6,10 @@
     "demo_label": "Customer A",
     "behaviour": "late but responsive; PO-dependent; direct finance-team wording works",
     "primary_contact": "Maya Reeves",
-    "finance_email": "finance@northstar.example"
+    "finance_email": "finance@northstar.example",
+    "finance_phone_e164": "+447700900201",
+    "phone_contact_consent": true,
+    "preferred_contact_channels": ["email", "phone"]
   },
   {
     "_id": "cust_blue_finch",
@@ -15,7 +18,10 @@
     "demo_label": "Customer B",
     "behaviour": "ignores friendly reminders; responds to formal finance-team wording with invoice attached",
     "primary_contact": "Owen Price",
-    "finance_email": "accounts@bluefinch.example"
+    "finance_email": "accounts@bluefinch.example",
+    "finance_phone_e164": "+447700900202",
+    "phone_contact_consent": true,
+    "preferred_contact_channels": ["email", "phone"]
   },
   {
     "_id": "cust_ember",
@@ -25,6 +31,9 @@
     "behaviour": "slow payer; not shown in core demo",
     "primary_contact": "Nina Shah",
     "finance_email": "accounts@ember.example",
+    "finance_phone_e164": "+447700900203",
+    "phone_contact_consent": false,
+    "preferred_contact_channels": ["email"],
     "visible_in_demo": false
   }
 ]

@@ -4,13 +4,17 @@
     "company_id": "cmp_marlow_finch",
     "name": "Emma Marlow",
     "role": "Founder / Managing Director",
-    "approval_role": "final_approver"
+    "approval_role": "final_approver",
+    "phone_e164": "+447700900101",
+    "phone_contact_consent": true
   },
   {
     "_id": "usr_jules_finch",
     "company_id": "cmp_marlow_finch",
     "name": "Jules Finch",
     "role": "Finance / Operations Lead",
-    "approval_role": "finance_operator"
+    "approval_role": "finance_operator",
+    "phone_e164": "+447700900102",
+    "phone_contact_consent": true
   }
 ]
