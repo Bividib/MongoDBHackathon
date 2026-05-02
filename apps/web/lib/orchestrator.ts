@@ -407,6 +407,12 @@ async function updateCasePointer(
     currentCashGbp?: number;
   }
 ): Promise<WriteSummary> {
+  const currentCase = await documents(db, "cases").findOne({ _id: CASE_ID });
+
+  if (!currentCase) {
+    throw new Error(`Cannot update missing case ${CASE_ID}`);
+  }
+
   const set: Record<string, unknown> = {
     active_forecast_id: values.activeForecastId,
     active_payment_plan_id: values.activePaymentPlanId,
@@ -418,7 +424,11 @@ async function updateCasePointer(
     set.current_cash_gbp = values.currentCashGbp;
   }
 
-  const result = await documents(db, "cases").updateOne({ _id: CASE_ID }, { $set: set });
+  const nextCase = {
+    ...currentCase,
+    ...set
+  };
+  const result = await documents(db, "cases").replaceOne({ _id: CASE_ID }, nextCase);
 
   return {
     collection: "cases",
