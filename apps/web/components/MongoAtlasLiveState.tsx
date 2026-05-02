@@ -1,6 +1,5 @@
-import { Database, ServerCog } from "lucide-react";
+import { Database } from "lucide-react";
 import { Panel } from "./Panel";
-import { StatusPill } from "./StatusPill";
 import { getAtlasRows, phaseSummary, type DemoPhase } from "./cockpit-data";
 
 export function MongoAtlasLiveState({ phase }: { phase: DemoPhase }) {
@@ -9,45 +8,42 @@ export function MongoAtlasLiveState({ phase }: { phase: DemoPhase }) {
 
   return (
     <Panel
-      action={<StatusPill status={summary.caseStateLabel} tone="neutral" />}
-      className="xl:min-h-[840px]"
+      action={
+        <span className="text-[0.7rem] font-medium uppercase tracking-[0.12em] text-[var(--text-faint)]">
+          {summary.caseStateLabel}
+        </span>
+      }
       eyebrow="Durable context engine"
-      icon={<Database size={18} aria-hidden />}
-      title="MongoDB Atlas Live State"
+      icon={<Database size={16} aria-hidden />}
+      title="MongoDB Atlas live state"
+      variant="default"
     >
-      <div className="mb-4 rounded-md border border-emerald-200 bg-emerald-50 p-3">
-        <div className="flex items-center gap-2 text-sm font-black text-[var(--green)]">
-          <ServerCog size={16} aria-hidden />
-          event_inbox wakes the workflow; collections preserve the audit.
-        </div>
-      </div>
-
-      <div className="overflow-hidden rounded-md border border-[var(--line)]">
-        <div className="grid grid-cols-[minmax(120px,0.85fr)_minmax(130px,1fr)_90px] gap-2 border-b border-[var(--line)] bg-[var(--panel-muted)] px-3 py-2 text-[0.68rem] font-black uppercase tracking-[0.08em] text-[var(--muted)]">
+      <div className="overflow-hidden rounded-[var(--radius-md)] border border-[var(--line)]">
+        <div className="grid grid-cols-[minmax(120px,0.95fr)_minmax(110px,0.9fr)_72px] gap-3 border-b border-[var(--line)] bg-[var(--surface-muted)] px-3 py-2 text-[0.62rem] font-semibold uppercase tracking-[0.14em] text-[var(--text-faint)]">
           <span>Collection</span>
           <span>Latest ID</span>
-          <span>Change</span>
+          <span className="text-right">Change</span>
         </div>
-        <div className="grid max-h-[672px] overflow-auto">
+        <div className="grid max-h-[480px] overflow-auto scroll-stable">
           {rows.map((row) => (
             <article
               key={row.collection}
-              className="grid gap-2 border-b border-[var(--line)] bg-white px-3 py-3 last:border-b-0"
+              className="grid gap-1.5 border-b border-[var(--line)] bg-transparent px-3 py-2.5 transition last:border-b-0 hover:bg-[var(--surface-2)]"
             >
-              <div className="grid grid-cols-[minmax(120px,0.85fr)_minmax(130px,1fr)_90px] gap-2">
-                <div className="min-w-0 text-sm font-black text-[var(--navy)]">
+              <div className="grid grid-cols-[minmax(120px,0.95fr)_minmax(110px,0.9fr)_72px] gap-3">
+                <div className="min-w-0 text-sm font-semibold text-[var(--text)]">
                   {row.collection}
                 </div>
-                <div className="min-w-0 truncate text-xs font-bold text-[var(--muted)]">
+                <div className="min-w-0 truncate font-mono text-[0.7rem] text-[var(--text-muted)]">
                   {row.documentId}
                 </div>
-                <div className="text-right text-xs font-black text-[var(--blue)]">
+                <div className="text-right text-[0.7rem] font-semibold text-[var(--amber-soft)]">
                   {row.change}
                 </div>
               </div>
-              <div className="grid gap-2 text-xs font-semibold leading-5 text-[var(--muted)] sm:grid-cols-[1fr_auto] sm:items-center">
-                <span>{row.why}</span>
-                <span className="font-black text-[var(--navy)]">{row.timestamp}</span>
+              <div className="flex items-center justify-between gap-3 text-[0.7rem] font-normal leading-5 text-[var(--text-faint)]">
+                <span className="truncate">{row.why}</span>
+                <span className="font-mono">{row.timestamp}</span>
               </div>
             </article>
           ))}

@@ -1,8 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import type { ReactNode } from "react";
-import { Activity, MailCheck, Radio, RotateCcw } from "lucide-react";
 import { AgentWorkers } from "./AgentWorkers";
 import { AuditWhyPanel } from "./AuditWhyPanel";
 import { DraftApprovalPanel } from "./DraftApprovalPanel";
@@ -11,7 +9,7 @@ import { FounderBriefing } from "./FounderBriefing";
 import { MainCaseBoard } from "./MainCaseBoard";
 import { MemoryCardPreview } from "./MemoryCardPreview";
 import { MongoAtlasLiveState } from "./MongoAtlasLiveState";
-import { RiskCommandBar } from "./RiskCommandBar";
+import { DemoControls, RiskCommandBar } from "./RiskCommandBar";
 import type { DemoPhase } from "./cockpit-data";
 
 type ApiCaseState = {
@@ -45,14 +43,8 @@ function phaseFromState(state: ApiCaseState): DemoPhase {
 
   const versions = new Set(state.forecasts?.map((forecast) => forecast.version));
 
-  if (versions.has(3)) {
-    return "bank";
-  }
-
-  if (versions.has(2)) {
-    return "reply";
-  }
-
+  if (versions.has(3)) return "bank";
+  if (versions.has(2)) return "reply";
   return "baseline";
 }
 
@@ -60,10 +52,7 @@ async function requestJson(path: string, init?: RequestInit) {
   const response = await fetch(path, {
     cache: "no-store",
     ...init,
-    headers: {
-      "Content-Type": "application/json",
-      ...init?.headers
-    }
+    headers: { "Content-Type": "application/json", ...init?.headers }
   });
   const json = (await response.json()) as ApiCaseState & { ok?: boolean; error?: string };
 
@@ -88,9 +77,7 @@ export function CockpitShell() {
       try {
         const state = await requestJson("/api/case-state");
 
-        if (cancelled) {
-          return;
-        }
+        if (cancelled) return;
 
         const nextPhase = phaseFromState(state);
 
@@ -105,9 +92,7 @@ export function CockpitShell() {
           setError(refreshError instanceof Error ? refreshError.message : String(refreshError));
         }
       } finally {
-        if (!cancelled) {
-          setLoading(false);
-        }
+        if (!cancelled) setLoading(false);
       }
     }
 
@@ -119,17 +104,13 @@ export function CockpitShell() {
   }, []);
 
   useEffect(() => {
-    if (!bankFeedArmed) {
-      return;
-    }
+    if (!bankFeedArmed) return;
 
     let cancelled = false;
     const interval = window.setInterval(() => {
       void requestJson("/api/case-state")
         .then((state) => {
-          if (cancelled) {
-            return;
-          }
+          if (cancelled) return;
 
           const nextPhase = phaseFromState(state);
 
@@ -158,7 +139,7 @@ export function CockpitShell() {
       simulateReply: async () => {
         try {
           setBankFeedArmed(false);
-          setActionStatus("Writing Northstar reply to event_inbox...");
+          setActionStatus("Writing Northstar reply to event_inbox…");
           const result = await requestJson("/api/events/customer-reply", { method: "POST" });
           const nextPhase = phaseFromState(result);
 
@@ -177,7 +158,7 @@ export function CockpitShell() {
       },
       startBankFeed: async () => {
         try {
-          setActionStatus("Starting simulated live bank feed...");
+          setActionStatus("Starting simulated live bank feed…");
 
           if (phase === "baseline") {
             await requestJson("/api/events/customer-reply", { method: "POST" });
@@ -210,96 +191,88 @@ export function CockpitShell() {
   );
 
   return (
-    <main className="min-h-screen bg-[var(--bg)] px-3 py-4 text-[var(--text)] sm:px-4 lg:px-6">
-      <div className="mx-auto grid w-full max-w-[1840px] gap-4">
-        <RiskCommandBar
-          bankFeedArmed={bankFeedArmed}
-          loading={loading}
-          onReset={controls.reset}
-          onSimulateReply={controls.simulateReply}
-          onStartBankFeed={controls.startBankFeed}
-          phase={phase}
-        />
+    <main className="min-h-screen bg-[var(--bg)] text-[var(--text)]">
+      <div className="mx-auto grid w-full max-w-[1480px] gap-5 px-4 py-5 sm:px-6 lg:px-8">
+        <RiskCommandBar phase={phase} />
 
-        <div
-          className={`rounded-lg border px-4 py-3 text-sm font-bold ${
-            error
-              ? "border-red-200 bg-red-50 text-[var(--red)]"
-              : "border-emerald-200 bg-emerald-50 text-[var(--green)]"
-          }`}
-          role="status"
+        <StatusBanner error={error} status={actionStatus} />
+
+        <section
+          aria-label="Founder cockpit"
+          className="grid gap-5 xl:grid-cols-[300px_minmax(0,1fr)_320px]"
         >
-          {error ? `Live API error: ${error}` : actionStatus}
-        </div>
-
-        <div className="grid gap-4 xl:grid-cols-[300px_minmax(0,1fr)_390px]">
           <EventFeed phase={phase} />
-
-          <div className="grid gap-4">
-            <MainCaseBoard bankFeedArmed={bankFeedArmed} phase={phase} />
-            <div className="grid gap-4 lg:grid-cols-[0.95fr_1.05fr]">
-              <AgentWorkers phase={phase} />
-              <DraftApprovalPanel />
-            </div>
-          </div>
-
-          <MongoAtlasLiveState phase={phase} />
-        </div>
-
-        <div className="grid gap-4 2xl:grid-cols-[1.05fr_0.95fr_0.85fr] lg:grid-cols-2">
+          <MainCaseBoard bankFeedArmed={bankFeedArmed} phase={phase} />
           <AuditWhyPanel phase={phase} />
+        </section>
+
+        <DraftApprovalPanel />
+
+        <section
+          aria-label="Behind the scenes"
+          className="grid gap-5 lg:grid-cols-2 2xl:grid-cols-4"
+        >
+          <MongoAtlasLiveState phase={phase} />
+          <AgentWorkers phase={phase} />
           <FounderBriefing phase={phase} />
           <MemoryCardPreview phase={phase} />
-        </div>
+        </section>
 
         <div className="sr-only" aria-live="polite">
           Current cockpit state is {phase}. {bankFeedArmed ? "Bank feed timer is running." : ""}
         </div>
 
-        <div className="fixed bottom-4 right-4 z-20 hidden gap-2 rounded-lg border border-[var(--line)] bg-[var(--panel)] p-2 shadow-[var(--shadow-strong)] md:flex">
-          <MiniControl
-            disabled={phase !== "baseline"}
-            icon={<MailCheck size={16} aria-hidden />}
-            label="Reply"
-            onClick={controls.simulateReply}
-          />
-          <MiniControl
-            disabled={bankFeedArmed || phase === "bank"}
-            icon={bankFeedArmed ? <Activity size={16} aria-hidden /> : <Radio size={16} aria-hidden />}
-            label={bankFeedArmed ? "Live" : "Bank"}
-            onClick={controls.startBankFeed}
-          />
-          <MiniControl
-            icon={<RotateCcw size={16} aria-hidden />}
-            label="Reset"
-            onClick={controls.reset}
-          />
-        </div>
+        <FloatingDemoControls
+          bankFeedArmed={bankFeedArmed}
+          loading={loading}
+          phase={phase}
+          onReset={controls.reset}
+          onSimulateReply={controls.simulateReply}
+          onStartBankFeed={controls.startBankFeed}
+        />
       </div>
     </main>
   );
 }
 
-function MiniControl({
-  disabled = false,
-  icon,
-  label,
-  onClick
-}: {
-  disabled?: boolean;
-  icon: ReactNode;
-  label: string;
-  onClick: () => void;
+function StatusBanner({ error, status }: { error: string | null; status: string }) {
+  const isError = Boolean(error);
+  return (
+    <div
+      className={`rounded-full border px-4 py-2 text-xs font-medium tracking-tight ${
+        isError
+          ? "border-[rgba(239,106,74,0.45)] bg-[rgba(239,106,74,0.10)] text-[var(--red)]"
+          : "border-[var(--line)] bg-[var(--surface-muted)] text-[var(--text-muted)]"
+      }`}
+      role="status"
+    >
+      <span className="mr-2 inline-block h-1.5 w-1.5 rounded-full align-middle"
+        style={{
+          backgroundColor: isError ? "var(--red)" : "var(--green)",
+          boxShadow: isError
+            ? "0 0 8px rgba(239,106,74,0.7)"
+            : "0 0 8px rgba(52,211,153,0.7)"
+        }}
+        aria-hidden
+      />
+      {isError ? `Live API error: ${error}` : status}
+    </div>
+  );
+}
+
+function FloatingDemoControls(props: {
+  phase: DemoPhase;
+  bankFeedArmed: boolean;
+  loading: boolean;
+  onSimulateReply: () => void | Promise<void>;
+  onStartBankFeed: () => void | Promise<void>;
+  onReset: () => void;
 }) {
   return (
-    <button
-      className="inline-flex min-h-11 items-center gap-2 rounded-md border border-[var(--line)] bg-[var(--panel-muted)] px-3 text-xs font-black uppercase tracking-[0.08em] text-[var(--navy)] transition hover:border-[var(--line-strong)] hover:bg-white disabled:cursor-not-allowed disabled:opacity-45"
-      disabled={disabled}
-      onClick={onClick}
-      type="button"
-    >
-      {icon}
-      {label}
-    </button>
+    <div className="pointer-events-none fixed inset-x-0 bottom-4 z-30 flex justify-center px-4 sm:bottom-6">
+      <div className="pointer-events-auto rounded-full border border-[var(--line-strong)] bg-[var(--bg-deep)]/95 p-1.5 shadow-[var(--shadow)] backdrop-blur">
+        <DemoControls {...props} />
+      </div>
+    </div>
   );
 }

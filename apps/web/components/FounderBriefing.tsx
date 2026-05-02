@@ -1,6 +1,6 @@
 "use client";
 
-import { Headphones, Play, Square } from "lucide-react";
+import { Headphones, Pause, Play } from "lucide-react";
 import { useState } from "react";
 import { Panel } from "./Panel";
 import { StatusPill } from "./StatusPill";
@@ -12,50 +12,49 @@ export function FounderBriefing({ phase }: { phase: DemoPhase }) {
   const transcript = generated
     ? founderBriefing.transcript
     : phase === "reply"
-      ? "Briefing is queued until a cash-changing bank event arrives. Northstar is conditional, so the case remains high risk."
+      ? "Briefing is queued until a cash-changing bank event lands. Northstar's promise is conditional, so risk stays HIGH."
       : "Briefing is queued. RunwayOps will generate the founder action brief after live replanning evidence is available.";
 
   return (
     <Panel
-      action={<StatusPill status={generated ? "generated" : "queued"} tone={generated ? "safe" : "watch"} />}
+      action={
+        <StatusPill
+          status={generated ? "generated" : "queued"}
+          tone={generated ? "safe" : "watch"}
+        />
+      }
       eyebrow="Founder action brief"
-      icon={<Headphones size={18} aria-hidden />}
-      title="Founder Briefing"
+      icon={<Headphones size={16} aria-hidden />}
+      title="Founder briefing"
+      variant="default"
     >
-      <div className="grid gap-4">
-        <div className="rounded-md border border-[var(--line)] bg-[var(--panel-muted)] p-3">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <h3 className="m-0 text-sm font-black text-[var(--navy)]">
-                {founderBriefing.title}
-              </h3>
-              <p className="m-0 mt-1 text-xs font-bold uppercase tracking-[0.08em] text-[var(--muted)]">
-                {founderBriefing.source}
-              </p>
+      <div className="grid gap-3">
+        <div className="flex items-center gap-3 rounded-[var(--radius-md)] border border-[var(--line)] bg-[var(--surface-muted)] p-3">
+          <button
+            aria-label={playing ? "Pause briefing" : "Play briefing"}
+            className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-[var(--amber)] text-[#1a1100] shadow-[var(--shadow-amber)] transition hover:bg-[var(--amber-soft)] disabled:cursor-not-allowed disabled:opacity-45"
+            disabled={!generated}
+            onClick={() => setPlaying((value) => !value)}
+            type="button"
+          >
+            {playing ? <Pause size={16} aria-hidden /> : <Play size={16} aria-hidden />}
+          </button>
+          <div className="min-w-0">
+            <div className="text-sm font-semibold tracking-tight text-[var(--text)]">
+              {founderBriefing.title}
             </div>
-            <button
-              className="inline-flex min-h-11 items-center gap-2 rounded-md border border-[var(--navy)] bg-[var(--navy)] px-3 text-xs font-black uppercase tracking-[0.08em] text-white transition hover:bg-[#18395d] disabled:cursor-not-allowed disabled:opacity-45"
-              disabled={!generated}
-              onClick={() => setPlaying((value) => !value)}
-              type="button"
-            >
-              {playing ? <Square size={15} aria-hidden /> : <Play size={15} aria-hidden />}
-              {playing ? "Stop" : "Play"}
-            </button>
-          </div>
-          <div className="mt-3 grid gap-2 text-xs font-bold text-[var(--muted)] sm:grid-cols-[1fr_auto]">
-            <span className="truncate">
-              {generated ? founderBriefing.audioKey : "Audio artifact pending"}
-            </span>
-            <span>{generated ? founderBriefing.duration : "--:--"}</span>
+            <div className="mt-0.5 text-[0.7rem] font-medium text-[var(--text-faint)]">
+              {generated ? founderBriefing.duration : "--:--"} ·{" "}
+              {generated ? "ElevenLabs · cached MP3" : "Awaiting bank event"}
+            </div>
           </div>
         </div>
 
-        <article className="rounded-md border border-[var(--line)] bg-white p-4">
-          <h3 className="m-0 text-sm font-black uppercase tracking-[0.08em] text-[var(--navy)]">
+        <article>
+          <h3 className="m-0 text-[0.65rem] font-semibold uppercase tracking-[0.14em] text-[var(--text-faint)]">
             Transcript
           </h3>
-          <p className="m-0 mt-3 text-sm font-semibold leading-7 text-[var(--text)]">
+          <p className="m-0 mt-2 text-sm font-normal leading-7 text-[var(--text)]">
             {transcript}
           </p>
         </article>

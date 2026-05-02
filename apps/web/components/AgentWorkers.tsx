@@ -7,30 +7,31 @@ export function AgentWorkers({ phase }: { phase: DemoPhase }) {
   return (
     <Panel
       eyebrow="Six specialist workers"
-      icon={<Cpu size={18} aria-hidden />}
-      title="Agent Workers"
+      icon={<Cpu size={16} aria-hidden />}
+      title="Agent workers"
+      variant="default"
     >
-      <div className="grid gap-3">
+      <div className="grid gap-2.5">
         {workerRows[phase].map((worker) => (
           <article
             key={worker.name}
-            className="rounded-md border border-[var(--line)] bg-white p-3"
+            className="rounded-[var(--radius-md)] border border-[var(--line)] bg-[var(--surface-muted)] p-3"
           >
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
-                <h3 className="m-0 text-sm font-black leading-5 text-[var(--navy)]">
+                <h3 className="m-0 text-[0.9rem] font-semibold tracking-tight text-[var(--text)]">
                   {worker.name}
                 </h3>
-                <p className="m-0 mt-1 text-sm font-semibold leading-5 text-[var(--muted)]">
+                <p className="m-0 mt-1 text-xs font-normal leading-5 text-[var(--text-muted)]">
                   {worker.detail}
                 </p>
               </div>
               <StatusPill status={worker.status} tone={statusTone(worker.status)} />
             </div>
-            <div className="mt-3 grid gap-2 rounded-md border border-[var(--line)] bg-[var(--panel-muted)] px-3 py-2 text-xs font-bold text-[var(--muted)] sm:grid-cols-[1fr_auto] sm:items-center">
-              <span className="truncate">{worker.runId}</span>
-              <span className="inline-flex items-center gap-1 text-[var(--blue)]">
-                <DatabaseZap size={13} aria-hidden />
+            <div className="mt-2.5 flex items-center justify-between gap-2 text-[0.7rem] font-medium text-[var(--text-faint)]">
+              <span className="truncate font-mono">{worker.runId}</span>
+              <span className="inline-flex items-center gap-1.5 text-[var(--amber-soft)]">
+                <DatabaseZap size={12} aria-hidden />
                 {worker.writes}
               </span>
             </div>
@@ -42,13 +43,7 @@ export function AgentWorkers({ phase }: { phase: DemoPhase }) {
 }
 
 function statusTone(status: WorkerStatus) {
-  if (status === "complete") {
-    return "safe";
-  }
-
-  if (status === "running" || status === "queued") {
-    return "watch";
-  }
-
+  if (status === "complete") return "safe";
+  if (status === "running" || status === "queued") return "watch";
   return "neutral";
 }

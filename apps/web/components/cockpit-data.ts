@@ -248,7 +248,8 @@ export const invoicePriority = [
     amount: formatCurrency(DEMO_CASE.northstarInvoiceAmount),
     age: "18 days overdue",
     reason: "Highest payroll leverage; PO-dependent payer",
-    action: "Ask for explicit PO/payment confirmation"
+    action: "Ask for explicit PO/payment confirmation",
+    behaviour: "Usually pays after a second nudge — worth chasing first"
   },
   {
     customer: "Blue Finch Ltd",
@@ -256,9 +257,72 @@ export const invoicePriority = [
     amount: formatCurrency(2200),
     age: "7 days overdue",
     reason: "Backup collection target; ignores friendly nudges",
-    action: "Use formal finance-team wording with invoice attached"
+    action: "Use formal finance-team wording with invoice attached",
+    behaviour: "Reliable, just slow — a firmer reminder usually works"
+  },
+  {
+    customer: "Ember & Co",
+    invoice: "INV-0996",
+    amount: formatCurrency(6500),
+    age: "31 days overdue",
+    reason: "Long-tail risk; not load-bearing this week",
+    action: "Personal note from founder once payroll clears",
+    behaviour: "Slow payer — may need a personal note from you"
   }
 ] as const;
+
+type WhatChangedItem = {
+  label: string;
+  tone: "amber" | "muted";
+};
+
+export const whatChangedByPhase: Record<DemoPhase, ReadonlyArray<WhatChangedItem>> = {
+  baseline: [
+    { label: "Northstar still hasn't paid · 18 days late", tone: "amber" },
+    { label: "Blue Finch reminder due", tone: "amber" },
+    { label: "Supplier X bill arrives Thursday", tone: "amber" },
+    { label: "Payroll runs Friday morning", tone: "amber" }
+  ],
+  reply: [
+    { label: "Northstar replied — promise is conditional on PO", tone: "amber" },
+    { label: "Forecast v2 saved · risk still HIGH", tone: "amber" },
+    { label: "Blue Finch reminder still pending", tone: "muted" },
+    { label: "Supplier X bill arrives Thursday", tone: "muted" }
+  ],
+  bank: [
+    { label: "Harbour Labs paid £1,200 retainer", tone: "amber" },
+    { label: "Risk eased to WATCH · forecast v3 saved", tone: "amber" },
+    { label: "Supplier X moved from full delay to conditional hold", tone: "amber" },
+    { label: "Founder briefing ready · memory written", tone: "muted" }
+  ]
+};
+
+export const yourPlanByPhase: Record<DemoPhase, { title: string; body: string; cta: string }> = {
+  baseline: {
+    title: "Your plan",
+    body:
+      "If you approve the three drafts on the right, payroll clears Friday assuming Northstar pays. If they don't, we'll need a backup plan — I'll watch and let you know.",
+    cta: "Why I'm recommending this"
+  },
+  reply: {
+    title: "Your plan",
+    body:
+      "Northstar's reply is helpful but conditional, so I'm keeping payroll at high risk until the PO is confirmed. Approve the follow-up email and stay holding Supplier X.",
+    cta: "Why I'm not marking this safe"
+  },
+  bank: {
+    title: "Your plan",
+    body:
+      "Harbour Labs landed £1,200, so risk is now WATCH — not safe. If you keep Supplier X on conditional hold and Northstar pays Friday, you'll finish with £800 after both bills. I'll keep watching.",
+    cta: "Why WATCH and not SAFE"
+  }
+};
+
+export const headlineFacts = {
+  shortBy: formatCurrency(5200),
+  greeting: "Good morning, Emma",
+  approvalsCopy: "3 actions ready for you"
+};
 
 export const approvalQueue = [
   {
@@ -286,28 +350,28 @@ export const approvalQueue = [
 
 export const draftRows = [
   {
-    title: "Northstar confirmation",
+    title: "Northstar — second reminder with PO",
     subtitle: "INV-1042 / PO-7781",
     status: "pending approval",
     body:
-      "Thanks for the update. Can you confirm the PO is re-approved and payment will clear on Friday 8 May?",
-    evidence: "Memory: PO-dependent promises need explicit confirmation"
+      "Hi Jess, following up on invoice £4,800 (18 days overdue). We've treated the original PO as confirmation of work completed. Appreciate your help getting this over the line.",
+    evidence: "Based on what's worked with Northstar before."
   },
   {
-    title: "Blue Finch formal reminder",
+    title: "Blue Finch — firmer finance-team reminder",
     subtitle: "INV-1048",
     status: "pending approval",
     body:
-      "Please find INV-1048 attached. Our finance team needs confirmation of payment timing by close of business.",
-    evidence: "History: responds to formal finance-team wording"
+      "Dear Accounts Payable, invoice £2,200 (7 days overdue). Please confirm payment timeline or let us know if anything's changed. Thanks.",
+    evidence: "Written in a firmer finance-team tone."
   },
   {
-    title: "Supplier X conditional hold",
+    title: "Supplier X — request 5-day delay",
     subtitle: "MotionPrint / £2,400",
     status: "pending approval",
     body:
-      "Hold payment within the written 5-day no-penalty grace period until Friday morning cash clears.",
-    evidence: "Supplier terms: non-critical this week; grace window available"
+      "Hi Alex, would you be open to a 5-day deferral on this week's payment of £2,400? We can use the grace period in our terms. Thanks for the flexibility.",
+    evidence: "Uses the grace period already in your terms."
   }
 ] as const;
 
