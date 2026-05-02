@@ -41,7 +41,7 @@ export const phaseSummary: Record<
     riskStatus: "high",
     cashLabel: formatCurrency(DEMO_CASE.cashToday),
     projectedGapLabel: formatCurrency(5200),
-    projectedGapDetail: "if Supplier X is paid and invoices slip",
+    projectedGapDetail: "if MotionPrint is paid and invoices slip",
     forecastVersion: "v1",
     planVersion: "v1",
     supplierRecommendation: "Full delay",
@@ -53,7 +53,7 @@ export const phaseSummary: Record<
     riskStatus: "high",
     cashLabel: formatCurrency(DEMO_CASE.cashToday),
     projectedGapLabel: formatCurrency(2800),
-    projectedGapDetail: "with Supplier X held and Northstar unconfirmed",
+    projectedGapDetail: "with MotionPrint held and Northstar unconfirmed",
     forecastVersion: "v2",
     planVersion: "v2",
     supplierRecommendation: "Full delay",
@@ -71,7 +71,7 @@ export const phaseSummary: Record<
     forecastVersion: "v3",
     planVersion: "v3",
     supplierRecommendation: "Conditional hold",
-    supplierDetail: "Release Supplier X only after Friday morning cash confirmation.",
+    supplierDetail: "Release MotionPrint only after Friday morning cash confirmation.",
     caseStateLabel: "Live replanned",
     headline: "Risk moved to watch, not safe."
   }
@@ -117,7 +117,7 @@ export const eventRows = [
     id: "evt_drafts_001",
     phase: "baseline",
     eventType: "drafts.created",
-    label: "Northstar, Blue Finch, and Supplier X approvals queued",
+    label: "Northstar, Blue Finch, and MotionPrint approvals queued",
     time: "09:01:32",
     change: "collection_drafts +3"
   },
@@ -125,7 +125,7 @@ export const eventRows = [
     id: "evt_plan_001",
     phase: "baseline",
     eventType: "payment_plan.v1_created",
-    label: "Supplier X full delay recommendation written",
+    label: "MotionPrint full delay recommendation written",
     time: "09:01:48",
     change: "payment_run_plans v1"
   },
@@ -181,7 +181,7 @@ export const eventRows = [
     id: "evt_plan_003",
     phase: "bank",
     eventType: "payment_plan.v3_created",
-    label: "Supplier X changed from full delay to conditional hold",
+    label: "MotionPrint changed from full delay to conditional hold",
     time: "10:22:14",
     change: "payment_run_plans v3"
   },
@@ -213,7 +213,7 @@ export const runwayTimeline = [
   },
   {
     day: "Thu 7 May",
-    title: "Supplier X due",
+    title: "MotionPrint due",
     amount: `-${formatCurrency(DEMO_CASE.supplierAmount)}`,
     detail: "MotionPrint has 5-day no-penalty grace terms",
     phase: "baseline"
@@ -280,19 +280,19 @@ export const whatChangedByPhase: Record<DemoPhase, ReadonlyArray<WhatChangedItem
   baseline: [
     { label: "Northstar still hasn't paid · 18 days late", tone: "amber" },
     { label: "Blue Finch reminder due", tone: "amber" },
-    { label: "Supplier X bill arrives Thursday", tone: "amber" },
+    { label: "MotionPrint bill arrives Thursday", tone: "amber" },
     { label: "Payroll runs Friday morning", tone: "amber" }
   ],
   reply: [
     { label: "Northstar replied — promise is conditional on PO", tone: "amber" },
     { label: "Forecast v2 saved · risk still HIGH", tone: "amber" },
     { label: "Blue Finch reminder still pending", tone: "muted" },
-    { label: "Supplier X bill arrives Thursday", tone: "muted" }
+    { label: "MotionPrint bill arrives Thursday", tone: "muted" }
   ],
   bank: [
     { label: "Harbour Labs paid £1,200 retainer", tone: "amber" },
     { label: "Risk eased to WATCH · forecast v3 saved", tone: "amber" },
-    { label: "Supplier X moved from full delay to conditional hold", tone: "amber" },
+    { label: "MotionPrint moved from full delay to conditional hold", tone: "amber" },
     { label: "Founder briefing ready · memory written", tone: "muted" }
   ]
 };
@@ -307,13 +307,13 @@ export const yourPlanByPhase: Record<DemoPhase, { title: string; body: string; c
   reply: {
     title: "Your plan",
     body:
-      "Northstar's reply is helpful but conditional, so I'm keeping payroll at high risk until the PO is confirmed. Approve the follow-up email and stay holding Supplier X.",
+      "Northstar's reply is helpful but conditional, so I'm keeping payroll at high risk until the PO is confirmed. Approve the follow-up email and stay holding MotionPrint.",
     cta: "Why I'm not marking this safe"
   },
   bank: {
     title: "Your plan",
     body:
-      "Harbour Labs landed £1,200, so risk is now WATCH — not safe. If you keep Supplier X on conditional hold and Northstar pays Friday, you'll finish with £800 after both bills. I'll keep watching.",
+      "Harbour Labs landed £1,200, so risk is now WATCH — not safe. If you keep MotionPrint on conditional hold and Northstar pays Friday, you'll finish with £800 after both bills. I'll keep watching.",
     cta: "Why WATCH and not SAFE"
   }
 };
@@ -336,7 +336,7 @@ export const agentSummaryByPhase: Record<DemoPhase, ReadonlyArray<AgentSummary>>
     { name: "Forecast Agent", status: "complete", summary: "Worked out the £5,200 Friday gap." },
     { name: "Customer Memory", status: "complete", summary: "Picked Northstar as the first call to make." },
     { name: "Collections Agent", status: "complete", summary: "Drafted the customer reminders." },
-    { name: "Payment Run Agent", status: "complete", summary: "Recommended delaying Supplier X." },
+    { name: "Payment Run Agent", status: "complete", summary: "Recommended delaying MotionPrint." },
     { name: "Audit & Learning", status: "queued", summary: "Will write the briefing once events land." }
   ],
   reply: [
@@ -344,7 +344,7 @@ export const agentSummaryByPhase: Record<DemoPhase, ReadonlyArray<AgentSummary>>
     { name: "Forecast Agent", status: "complete", summary: "Saved forecast v2 — risk still HIGH." },
     { name: "Customer Memory", status: "complete", summary: "Flagged the reply as conditional." },
     { name: "Collections Agent", status: "complete", summary: "Refined the Northstar follow-up." },
-    { name: "Payment Run Agent", status: "queued", summary: "Holding Supplier X plan until cash lands." },
+    { name: "Payment Run Agent", status: "queued", summary: "Holding MotionPrint plan until cash lands." },
     { name: "Audit & Learning", status: "queued", summary: "Briefing waits on the bank event." }
   ],
   bank: [
@@ -421,7 +421,7 @@ export const auditTrailByPhase: Record<DemoPhase, ReadonlyArray<AuditTrailItem>>
     { collection: "agent_runs", count: "5 steps", english: "Five agents worked through the baseline." },
     { collection: "retrieval_attempts", count: "1 search", english: "Memory looked up Northstar's payment behaviour." },
     { collection: "cashflow_forecasts", count: "v1", english: "Initial forecast — £5,200 short on Friday." },
-    { collection: "payment_run_plans", count: "v1", english: "First plan — delay Supplier X by 5 days." },
+    { collection: "payment_run_plans", count: "v1", english: "First plan — delay MotionPrint by 5 days." },
     { collection: "decision_log", count: "1 entry", english: "Why the supplier delay is the right call." },
     { collection: "memory_cards", count: "0 written", english: "Will be written after the case settles." }
   ],
@@ -430,7 +430,7 @@ export const auditTrailByPhase: Record<DemoPhase, ReadonlyArray<AuditTrailItem>>
     { collection: "agent_runs", count: "9 steps", english: "Memory, Forecast, and Collections re-ran." },
     { collection: "retrieval_attempts", count: "2 searches", english: "Hybrid search saw the conditional promise." },
     { collection: "cashflow_forecasts", count: "v2", english: "Risk stayed HIGH — the reply isn't guaranteed cash." },
-    { collection: "payment_run_plans", count: "v2", english: "Plan unchanged — Supplier X stays held." },
+    { collection: "payment_run_plans", count: "v2", english: "Plan unchanged — MotionPrint stays held." },
     { collection: "decision_log", count: "2 entries", english: "Why the reply doesn't move risk." },
     { collection: "memory_cards", count: "0 written", english: "Queued until the case settles." }
   ],
@@ -439,7 +439,7 @@ export const auditTrailByPhase: Record<DemoPhase, ReadonlyArray<AuditTrailItem>>
     { collection: "agent_runs", count: "14 steps", english: "All six agents ran — Audit closed the loop." },
     { collection: "retrieval_attempts", count: "2 searches", english: "Memory reused for the new forecast." },
     { collection: "cashflow_forecasts", count: "v3", english: "Risk eased to WATCH after Harbour Labs paid." },
-    { collection: "payment_run_plans", count: "v3", english: "Plan switched to conditional hold on Supplier X." },
+    { collection: "payment_run_plans", count: "v3", english: "Plan switched to conditional hold on MotionPrint." },
     { collection: "decision_log", count: "3 entries", english: "Why WATCH is the right risk level — not SAFE." },
     { collection: "memory_cards", count: "1 written", english: "Northstar PO-conditional rule saved for next case." }
   ]
@@ -461,7 +461,7 @@ export const approvalQueue = [
     collection: "collection_drafts"
   },
   {
-    title: "Supplier X conditional hold",
+    title: "MotionPrint conditional hold",
     owner: "Emma Marlow",
     status: "pending human approval",
     due: "Before Thursday",
@@ -510,7 +510,7 @@ export const draftRows: ReadonlyArray<DraftRow> = [
     evidence: "Written in a firmer finance-team tone."
   },
   {
-    title: "Supplier X — request 5-day delay",
+    title: "MotionPrint — request 5-day delay",
     subtitle: "MotionPrint / £2,400",
     status: "pending approval",
     channel: "phone",
@@ -567,7 +567,7 @@ export const workerRows: Record<
       name: "Payment Run Agent",
       status: "complete",
       runId: "run_payments_001",
-      detail: "Recommended full Supplier X delay",
+      detail: "Recommended full MotionPrint delay",
       writes: "payment_run_plans"
     },
     {
@@ -611,7 +611,7 @@ export const workerRows: Record<
       name: "Payment Run Agent",
       status: "queued",
       runId: "run_payments_queued",
-      detail: "Holding Supplier X recommendation until bank event",
+      detail: "Holding MotionPrint recommendation until bank event",
       writes: "payment_run_plans"
     },
     {
@@ -655,7 +655,7 @@ export const workerRows: Record<
       name: "Payment Run Agent",
       status: "complete",
       runId: "run_payments_003",
-      detail: "Changed Supplier X to conditional hold",
+      detail: "Changed MotionPrint to conditional hold",
       writes: "payment_run_plans"
     },
     {
@@ -732,7 +732,7 @@ const atlasRowsByPhase: Record<
       collection: "payment_run_plans",
       documentId: "plan_case_0508_v1",
       change: "v1",
-      why: "Supplier X full delay recommendation",
+      why: "MotionPrint full delay recommendation",
       timestamp: "09:01:48"
     },
     {
@@ -746,7 +746,7 @@ const atlasRowsByPhase: Record<
       collection: "decision_log",
       documentId: "decision_case_0508_001",
       change: "+1",
-      why: "Why Supplier X hold is recommended",
+      why: "Why MotionPrint hold is recommended",
       timestamp: "09:01:56"
     },
     {
@@ -825,7 +825,7 @@ const atlasRowsByPhase: Record<
       collection: "payment_run_plans",
       documentId: "plan_case_0508_v2",
       change: "v1 -> v2",
-      why: "Supplier X full delay remains",
+      why: "MotionPrint full delay remains",
       timestamp: "10:15:19"
     },
     {
@@ -918,7 +918,7 @@ const atlasRowsByPhase: Record<
       collection: "payment_run_plans",
       documentId: "plan_case_0508_v3",
       change: "v2 -> v3",
-      why: "Supplier X full delay -> conditional hold",
+      why: "MotionPrint full delay -> conditional hold",
       timestamp: "10:22:14"
     },
     {
@@ -972,7 +972,7 @@ export const auditQuestions = [
   {
     question: "Why did risk move HIGH -> WATCH?",
     answer:
-      "The worst visible shortfall moved from £2,800 to £1,600 when Supplier X is held, and the Northstar-pay scenario now leaves £800 after Supplier X."
+      "The worst visible shortfall moved from £2,800 to £1,600 when MotionPrint is held, and the Northstar-pay scenario now leaves £800 after MotionPrint."
   },
   {
     question: "Why is it not SAFE?",
@@ -980,19 +980,19 @@ export const auditQuestions = [
       "Northstar still depends on PO re-approval. The system preserves the slip scenario instead of counting conditional language as guaranteed cash."
   },
   {
-    question: "Why did Supplier X change?",
+    question: "Why did MotionPrint change?",
     answer:
       "The extra £1,200 makes a conditional hold viable, but release still waits for Friday morning cash confirmation."
   },
   {
     question: "Which evidence was used?",
     answer:
-      "INV-1042, the Northstar email thread, payment history, prior PO-dependent memory, Supplier X grace terms, and the Harbour Labs bank transaction."
+      "INV-1042, the Northstar email thread, payment history, prior PO-dependent memory, MotionPrint grace terms, and the Harbour Labs bank transaction."
   },
   {
     question: "What needs approval?",
     answer:
-      "The Northstar confirmation email, Blue Finch formal reminder, and Supplier X conditional hold remain pending human approval."
+      "The Northstar confirmation email, Blue Finch formal reminder, and MotionPrint conditional hold remain pending human approval."
   }
 ] as const;
 
@@ -1001,7 +1001,7 @@ export const retrievalEvidence = [
   "Northstar PO email thread",
   "Payment history: late but responsive",
   "Memory card: PO-dependent promises",
-  "Supplier X 5-day grace terms"
+  "MotionPrint 5-day grace terms"
 ] as const;
 
 export const founderBriefing = {
@@ -1010,7 +1010,7 @@ export const founderBriefing = {
   audioKey: "s3://runwayops-demo-artifacts/briefings/case_payroll_2026_05_08_v3.mp3",
   duration: "00:37",
   transcript:
-    "Payroll risk is now watch, not cleared. Harbour Labs paid £1,200. Northstar says they should be able to pay Friday, but payment depends on PO re-approval. Approve the Northstar confirmation email, hold Supplier X until Friday morning, and keep chasing Blue Finch. If Northstar slips, payroll remains short by £1,600."
+    "Payroll risk is now watch, not cleared. Harbour Labs paid £1,200. Northstar says they should be able to pay Friday, but payment depends on PO re-approval. Approve the Northstar confirmation email, hold MotionPrint until Friday morning, and keep chasing Blue Finch. If Northstar slips, payroll remains short by £1,600."
 } as const;
 
 export const memoryCard = {
@@ -1024,3 +1024,4 @@ export const memoryCard = {
     "Use direct finance-team wording with PO reference"
   ]
 } as const;
+

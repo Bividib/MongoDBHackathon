@@ -34,6 +34,8 @@ function channelIconNode(channel: OutreachChannel, size = 11): ReactNode {
 export function DraftApprovalPanel() {
   const [decisions, setDecisions] = useState<Record<string, DraftDecision>>({});
   const [openDraft, setOpenDraft] = useState<string | null>(null);
+  const [busyDraft, setBusyDraft] = useState<string | null>(null);
+  const [actionMessage, setActionMessage] = useState<string | null>(null);
 
   function setDecision(title: string, decision: DraftDecision) {
     setDecisions((current) => {
@@ -49,6 +51,39 @@ export function DraftApprovalPanel() {
     setOpenDraft((current) => (current === title ? null : title));
   }
 
+  async function approveDraft(draft: (typeof draftRows)[number]) {
+    if (draft.title !== "MotionPrint — request 5-day delay") {
+      setDecision(draft.title, "approved");
+      return;
+    }
+
+    try {
+      setBusyDraft(draft.title);
+      setActionMessage("Calling MotionPrint...");
+
+      const response = await fetch("/api/demo/supplier-delay-call", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" }
+      });
+      const result = (await response.json()) as {
+        ok?: boolean;
+        error?: string;
+        maskedToNumber?: string;
+      };
+
+      if (!response.ok || result.ok === false) {
+        throw new Error(result.error || `Call failed: ${response.status}`);
+      }
+
+      setDecision(draft.title, "approved");
+      setActionMessage(`MotionPrint voice call submitted to ${result.maskedToNumber ?? "test phone"}.`);
+    } catch (error) {
+      setActionMessage(error instanceof Error ? error.message : String(error));
+    } finally {
+      setBusyDraft(null);
+    }
+  }
+
   return (
     <Panel
       icon={<ShieldCheck size={16} aria-hidden />}
@@ -60,6 +95,12 @@ export function DraftApprovalPanel() {
       }
       variant="default"
     >
+      {actionMessage ? (
+        <div className="mb-3 rounded-[var(--radius-sm)] border border-[var(--line)] bg-[var(--surface)] px-3 py-2 text-[0.72rem] font-medium text-[var(--text-muted)]">
+          {actionMessage}
+        </div>
+      ) : null}
+
       <div className="grid gap-2.5 lg:grid-cols-3">
         {draftRows.map((draft, index) => {
           const decision = decisions[draft.title] ?? "pending";
@@ -142,8 +183,9 @@ export function DraftApprovalPanel() {
               <div className="mt-auto grid grid-cols-2 gap-1.5">
                 <ApproveButton
                   active={isApproved}
+                  busy={busyDraft === draft.title}
                   channel={draft.channel}
-                  onClick={() => setDecision(draft.title, "approved")}
+                  onClick={() => void approveDraft(draft)}
                 />
                 <RejectButton
                   active={isRejected}
@@ -249,10 +291,12 @@ function ChannelPreview({
 
 function ApproveButton({
   active,
+  busy,
   channel,
   onClick
 }: {
   active: boolean;
+  busy: boolean;
   channel: OutreachChannel;
   onClick: () => void;
 }) {
@@ -266,13 +310,14 @@ function ApproveButton({
   return (
     <button
       aria-pressed={active}
-      aria-label={active ? "Approved" : approveLabel[channel]}
+      aria-label={active ? "Approved" : busy ? "Submitting voice call" : approveLabel[channel]}
       className={`${baseClass} ${stateClass}`}
+      disabled={busy}
       onClick={onClick}
       type="button"
     >
       {active ? <Check size={13} aria-hidden /> : channelIconNode(channel, 12)}
-      <span className="leading-4">{active ? "Approved" : approveLabel[channel]}</span>
+      <span className="leading-4">{active ? "Approved" : busy ? "Calling..." : approveLabel[channel]}</span>
     </button>
   );
 }

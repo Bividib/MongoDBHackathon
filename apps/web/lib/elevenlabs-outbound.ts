@@ -264,16 +264,16 @@ async function buildContext(db: Db, body: OutboundCallRequest): Promise<Outreach
 
 function buildFirstMessage(context: OutreachContext): string {
   return [
-    `Hello, this is a RunwayOps demo call for ${context.customerName}.`,
-    `I am calling about payment timing for invoice ${context.invoiceNumber}.`,
+    "Hello, this is Emma calling from Marlow & Finch.",
+    `I am calling about payment timing for ${context.invoiceNumber}.`,
     "Is now an okay time for a brief call?"
   ].join(" ");
 }
 
 function buildAgentPrompt(context: OutreachContext): string {
   return [
-    "You are calling on behalf of RunwayOps for a controlled demo/test call.",
-    "If asked, say this is a controlled RunwayOps demo/test call.",
+    "You are calling on behalf of Marlow & Finch Creative Ltd.",
+    "This call has been approved by the finance lead as a payment-timing follow-up.",
     "",
     "Purpose of the call:",
     context.purpose,

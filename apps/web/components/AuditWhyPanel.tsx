@@ -23,7 +23,7 @@ const auditQuestionsByPhase: Record<
     {
       question: "Why is risk HIGH?",
       answer:
-        "If Supplier X is paid and invoices slip, Friday is short by £5,200. Holding Supplier X still leaves a £2,800 gap."
+        "If MotionPrint is paid and invoices slip, Friday is short by £5,200. Holding MotionPrint still leaves a £2,800 gap."
     },
     {
       question: "Why not count Northstar yet?",
@@ -33,7 +33,7 @@ const auditQuestionsByPhase: Record<
     {
       question: "What needs approval?",
       answer:
-        "The Northstar reminder, Blue Finch reminder, and Supplier X delay request — all pending human approval."
+        "The Northstar reminder, Blue Finch reminder, and MotionPrint delay request — all pending human approval."
     }
   ],
   reply: [
@@ -50,12 +50,12 @@ const auditQuestionsByPhase: Record<
     {
       question: "Which evidence was used?",
       answer:
-        "INV-1042, the Northstar email thread, payment history, prior PO-dependent memory, and Supplier X grace terms."
+        "INV-1042, the Northstar email thread, payment history, prior PO-dependent memory, and MotionPrint grace terms."
     },
     {
       question: "What needs approval?",
       answer:
-        "Approve the explicit PO/payment confirmation email and keep Supplier X held inside written grace terms."
+        "Approve the explicit PO/payment confirmation email and keep MotionPrint held inside written grace terms."
     }
   ],
   bank: [
@@ -67,7 +67,7 @@ const auditQuestionsByPhase: Record<
     {
       question: "Why did risk move HIGH → WATCH?",
       answer:
-        "The worst visible shortfall moved from £2,800 to £1,600 with Supplier X held, and the Northstar-pay scenario now leaves £800 after Supplier X."
+        "The worst visible shortfall moved from £2,800 to £1,600 with MotionPrint held, and the Northstar-pay scenario now leaves £800 after MotionPrint."
     },
     {
       question: "Why is it not SAFE?",
@@ -75,7 +75,7 @@ const auditQuestionsByPhase: Record<
         "Northstar still depends on PO re-approval. The slip scenario stays in play instead of being counted as guaranteed cash."
     },
     {
-      question: "Why did Supplier X change?",
+      question: "Why did MotionPrint change?",
       answer:
         "The extra £1,200 makes a conditional hold viable, but release still waits for Friday morning cash confirmation."
     }
@@ -147,3 +147,4 @@ export function AuditWhyPanel({ phase }: { phase: DemoPhase }) {
     </Panel>
   );
 }
+

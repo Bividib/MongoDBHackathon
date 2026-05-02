@@ -34,12 +34,12 @@ export function PaymentPlanRecommendation({ phase }: { phase: DemoPhase }) {
   const summary = phaseSummary[phase];
   const headline =
     phase === "bank"
-      ? "Hold Supplier X until Friday morning"
-      : "Delay Supplier X by 5 days";
+      ? "Hold MotionPrint until Friday morning"
+      : "Delay MotionPrint by 5 days";
   const description =
     phase === "bank"
       ? "Cash improved to £9,600. Hold within the grace period until Northstar's payment confirms, then release."
-      : "Supplier X gives us a 5-day grace period at no cost. Using it now buys breathing room while we chase customers.";
+      : "MotionPrint gives us a 5-day grace period at no cost. Using it now buys breathing room while we chase customers.";
 
   return (
     <Panel
@@ -99,3 +99,4 @@ export function PaymentPlanRecommendation({ phase }: { phase: DemoPhase }) {
     </Panel>
   );
 }
+

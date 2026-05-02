@@ -41,7 +41,7 @@ function buildSeries(phase: DemoPhase): ReadonlyArray<Series> {
     },
     {
       id: "delay_supplier",
-      label: "If we delay Supplier X",
+      label: "If we delay MotionPrint",
       color: "#f5a623",
       dashed: true,
       emphasis: false,
@@ -265,3 +265,4 @@ export function CashRunwayChart({ phase }: { phase: DemoPhase }) {
     </div>
   );
 }
+
