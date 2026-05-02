@@ -1,5 +1,9 @@
 # MongoDB Hackathon
 
+## Demo Video
+
+https://youtu.be/3IC-ItQtL2Q
+
 ## Setup
 
 Install dependencies:

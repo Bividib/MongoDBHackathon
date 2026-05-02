@@ -133,7 +133,7 @@ export function DemoControls({
   onReset: () => void;
 }) {
   return (
-    <div className="grid gap-2 sm:grid-cols-3">
+    <div className="grid gap-4 sm:grid-cols-3 sm:gap-6">
       <ControlButton
         disabled={loading || phase !== "baseline"}
         label="Step 1: Simulate Customer Reply"

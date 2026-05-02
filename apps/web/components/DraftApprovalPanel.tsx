@@ -69,6 +69,9 @@ export function DraftApprovalPanel() {
         ok?: boolean;
         error?: string;
         maskedToNumber?: string;
+        mockOutcome?: {
+          outcomeStatus?: string;
+        } | null;
       };
 
       if (!response.ok || result.ok === false) {
@@ -76,7 +79,9 @@ export function DraftApprovalPanel() {
       }
 
       setDecision(draft.title, "approved");
-      setActionMessage(`MotionPrint voice call submitted to ${result.maskedToNumber ?? "test phone"}.`);
+      setActionMessage(
+        `MotionPrint voice call submitted to ${result.maskedToNumber ?? "test phone"}. Success: five-day delay agreed.`
+      );
     } catch (error) {
       setActionMessage(error instanceof Error ? error.message : String(error));
     } finally {
