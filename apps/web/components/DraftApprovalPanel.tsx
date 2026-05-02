@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronDown, Mail, Phone, ShieldCheck } from "lucide-react";
+import { Check, ChevronDown, Mail, Pencil, Phone, ShieldCheck, X } from "lucide-react";
 import type { ReactNode } from "react";
 import { useState } from "react";
 import { Panel } from "./Panel";
@@ -14,23 +14,29 @@ const channelLabel: Record<OutreachChannel, string> = {
   both: "Email + Phone"
 };
 
-const channelIcon: Record<OutreachChannel, ReactNode> = {
-  email: <Mail size={11} aria-hidden />,
-  phone: <Phone size={11} aria-hidden />,
-  both: (
+function channelIconNode(channel: OutreachChannel, size = 11): ReactNode {
+  if (channel === "email") return <Mail size={size} aria-hidden />;
+  if (channel === "phone") return <Phone size={size} aria-hidden />;
+  return (
     <span className="flex items-center gap-0.5">
-      <Mail size={11} aria-hidden />
-      <Phone size={11} aria-hidden />
+      <Mail size={size} aria-hidden />
+      <Phone size={size} aria-hidden />
     </span>
-  )
-};
+  );
+}
 
 export function DraftApprovalPanel() {
   const [decisions, setDecisions] = useState<Record<string, DraftDecision>>({});
   const [openDraft, setOpenDraft] = useState<string | null>(null);
 
   function setDecision(title: string, decision: DraftDecision) {
-    setDecisions((current) => ({ ...current, [title]: decision }));
+    setDecisions((current) => {
+      if (current[title] === decision) {
+        const { [title]: _removed, ...rest } = current;
+        return rest;
+      }
+      return { ...current, [title]: decision };
+    });
   }
 
   function toggleDraft(title: string) {
@@ -53,7 +59,9 @@ export function DraftApprovalPanel() {
           const decision = decisions[draft.title] ?? "pending";
           const isApprovedEmail = decision === "approved-email";
           const isApprovedVoice = decision === "approved-voice";
+          const isEdit = decision === "edit";
           const isRejected = decision === "rejected";
+          const isApproved = isApprovedEmail || isApprovedVoice;
           const recommendsEmail = draft.channel === "email" || draft.channel === "both";
           const recommendsPhone = draft.channel === "phone" || draft.channel === "both";
           const isOpen = openDraft === draft.title;
@@ -62,11 +70,13 @@ export function DraftApprovalPanel() {
             <article
               key={draft.title}
               className={`flex h-full flex-col gap-2.5 rounded-[var(--radius-md)] border bg-[var(--surface-muted)] p-3 transition ${
-                isApprovedEmail || isApprovedVoice
-                  ? "border-[rgba(52,211,153,0.45)]"
+                isApproved
+                  ? "border-[var(--green)]/60 shadow-[0_0_24px_rgba(52,211,153,0.15)]"
                   : isRejected
-                    ? "border-[rgba(239,106,74,0.45)] opacity-70"
-                    : "border-[var(--line)] hover:border-[var(--line-strong)]"
+                    ? "border-[rgba(239,106,74,0.55)] opacity-70"
+                    : isEdit
+                      ? "border-[var(--line-strong)]"
+                      : "border-[var(--line)] hover:border-[var(--line-strong)]"
               }`}
             >
               <header className="flex items-start gap-2">
@@ -84,7 +94,7 @@ export function DraftApprovalPanel() {
                     {draft.subtitle}
                   </p>
                 </div>
-                <ChannelTag channel={draft.channel} />
+                <ChannelTag channel={draft.channel} decision={decision} />
               </header>
 
               <p className="m-0 text-[0.78rem] font-normal italic leading-5 text-[var(--text-muted)]">
@@ -133,44 +143,27 @@ export function DraftApprovalPanel() {
                   <PrimaryApprove
                     active={isApprovedEmail}
                     disabled={!recommendsEmail && !isApprovedEmail}
-                    icon={<Mail size={12} aria-hidden />}
                     label="Approve Email"
+                    icon={<Mail size={12} aria-hidden />}
                     onClick={() => setDecision(draft.title, "approved-email")}
                   />
                   <SecondaryApprove
                     active={isApprovedVoice}
                     disabled={!recommendsPhone && !isApprovedVoice}
-                    icon={<Phone size={12} aria-hidden />}
                     label="Approve Voice"
+                    icon={<Phone size={12} aria-hidden />}
                     onClick={() => setDecision(draft.title, "approved-voice")}
                   />
                 </div>
-                <div className="flex items-center justify-end gap-2 text-[0.7rem] font-semibold">
-                  <button
-                    aria-pressed={decision === "edit"}
-                    className={`transition hover:text-[var(--text)] ${
-                      decision === "edit"
-                        ? "text-[var(--text)] underline"
-                        : "text-[var(--text-faint)]"
-                    }`}
+                <div className="grid grid-cols-2 gap-1.5">
+                  <EditPill
+                    active={isEdit}
                     onClick={() => setDecision(draft.title, "edit")}
-                    type="button"
-                  >
-                    Edit
-                  </button>
-                  <span aria-hidden className="text-[var(--text-faint)]">·</span>
-                  <button
-                    aria-pressed={isRejected}
-                    className={`transition hover:text-[var(--red)] ${
-                      isRejected
-                        ? "text-[var(--red)] underline"
-                        : "text-[rgba(239,106,74,0.85)]"
-                    }`}
+                  />
+                  <RejectPill
+                    active={isRejected}
                     onClick={() => setDecision(draft.title, "rejected")}
-                    type="button"
-                  >
-                    Reject
-                  </button>
+                  />
                 </div>
               </div>
             </article>
@@ -181,14 +174,85 @@ export function DraftApprovalPanel() {
   );
 }
 
-function ChannelTag({ channel }: { channel: OutreachChannel }) {
+function ChannelTag({
+  channel,
+  decision
+}: {
+  channel: OutreachChannel;
+  decision: DraftDecision;
+}) {
+  if (decision === "approved-email") {
+    return (
+      <Tag tone="success" icon={<Check size={11} aria-hidden />}>
+        Email approved
+      </Tag>
+    );
+  }
+
+  if (decision === "approved-voice") {
+    return (
+      <Tag tone="success" icon={<Check size={11} aria-hidden />}>
+        Voice approved
+      </Tag>
+    );
+  }
+
+  if (decision === "rejected") {
+    return (
+      <Tag tone="danger" icon={<X size={11} aria-hidden />}>
+        Rejected
+      </Tag>
+    );
+  }
+
+  if (decision === "edit") {
+    return (
+      <Tag tone="neutral" icon={<Pencil size={10} aria-hidden />}>
+        Editing
+      </Tag>
+    );
+  }
+
+  return (
+    <Tag
+      tone="recommend"
+      icon={channelIconNode(channel, 11)}
+      ariaLabel={`Recommended channel: ${channelLabel[channel]}`}
+    >
+      Rec · {channelLabel[channel]}
+    </Tag>
+  );
+}
+
+function Tag({
+  children,
+  tone,
+  icon,
+  ariaLabel
+}: {
+  children: ReactNode;
+  tone: "recommend" | "success" | "danger" | "neutral";
+  icon?: ReactNode;
+  ariaLabel?: string;
+}) {
+  const toneClass: Record<typeof tone, string> = {
+    recommend:
+      "bg-[var(--amber-tint)] text-[var(--amber-soft)] border border-[rgba(245,166,35,0.32)]",
+    success:
+      "bg-[rgba(52,211,153,0.18)] text-[var(--green)] border border-[var(--green)]/50",
+    danger:
+      "bg-[rgba(239,106,74,0.18)] text-[var(--red)] border border-[var(--red)]/50",
+    neutral:
+      "bg-[var(--surface)] text-[var(--text-muted)] border border-[var(--line-strong)]"
+  };
+
   return (
     <span
-      aria-label={`Recommended channel: ${channelLabel[channel]}`}
-      className="inline-flex shrink-0 items-center gap-1 rounded-full bg-[var(--amber-tint)] px-2 py-0.5 text-[0.62rem] font-semibold uppercase tracking-[0.1em] text-[var(--amber-soft)]"
+      aria-label={ariaLabel}
+      className={`inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-[0.62rem] font-semibold uppercase tracking-[0.1em] ${toneClass[tone]}`}
     >
-      {channelIcon[channel]}
-      {channelLabel[channel]}
+      {icon}
+      {children}
     </span>
   );
 }
@@ -233,15 +297,15 @@ function PrimaryApprove({
       aria-pressed={active}
       className={`inline-flex min-h-9 items-center justify-center gap-1.5 rounded-full px-3 text-[0.72rem] font-semibold transition disabled:cursor-not-allowed disabled:opacity-40 ${
         active
-          ? "bg-[var(--green)] text-[#0a1f15] shadow-[0_0_18px_rgba(52,211,153,0.45)]"
-          : "bg-[var(--amber)] text-[#1a1100] shadow-[var(--shadow-amber)] hover:bg-[var(--amber-soft)]"
+          ? "bg-[var(--green)] text-[#0a1f15] ring-2 ring-[var(--green)] ring-offset-2 ring-offset-[var(--surface-muted)] shadow-[0_0_22px_rgba(52,211,153,0.55)]"
+          : "bg-[var(--amber)] text-[#1a1100] shadow-[var(--shadow-amber)] hover:bg-[var(--amber-soft)] active:scale-[0.98]"
       }`}
       disabled={disabled}
       onClick={onClick}
       type="button"
     >
-      {icon}
-      {active ? "Approved" : label}
+      {active ? <Check size={13} aria-hidden /> : icon}
+      {active ? "Email approved" : label}
     </button>
   );
 }
@@ -264,15 +328,51 @@ function SecondaryApprove({
       aria-pressed={active}
       className={`inline-flex min-h-9 items-center justify-center gap-1.5 rounded-full border px-3 text-[0.72rem] font-semibold transition disabled:cursor-not-allowed disabled:opacity-40 ${
         active
-          ? "border-[var(--green)] bg-[rgba(52,211,153,0.16)] text-[var(--green)]"
+          ? "border-[var(--green)] bg-[rgba(52,211,153,0.18)] text-[var(--green)] ring-1 ring-[var(--green)]/40"
           : "border-[rgba(245,166,35,0.55)] bg-transparent text-[var(--amber-soft)] hover:bg-[var(--amber-tint)]"
       }`}
       disabled={disabled}
       onClick={onClick}
       type="button"
     >
-      {icon}
-      {active ? "Approved" : label}
+      {active ? <Check size={13} aria-hidden /> : icon}
+      {active ? "Voice approved" : label}
+    </button>
+  );
+}
+
+function EditPill({ active, onClick }: { active: boolean; onClick: () => void }) {
+  return (
+    <button
+      aria-pressed={active}
+      className={`inline-flex min-h-8 items-center justify-center gap-1 rounded-full border px-3 text-[0.7rem] font-semibold transition ${
+        active
+          ? "border-[var(--text-muted)] bg-[var(--surface-2)] text-[var(--text)]"
+          : "border-[var(--line)] bg-transparent text-[var(--text-muted)] hover:border-[var(--line-strong)] hover:text-[var(--text)]"
+      }`}
+      onClick={onClick}
+      type="button"
+    >
+      <Pencil size={11} aria-hidden />
+      {active ? "Editing" : "Edit"}
+    </button>
+  );
+}
+
+function RejectPill({ active, onClick }: { active: boolean; onClick: () => void }) {
+  return (
+    <button
+      aria-pressed={active}
+      className={`inline-flex min-h-8 items-center justify-center gap-1 rounded-full border px-3 text-[0.7rem] font-semibold transition ${
+        active
+          ? "border-[var(--red)] bg-[rgba(239,106,74,0.16)] text-[var(--red)]"
+          : "border-[rgba(239,106,74,0.4)] bg-transparent text-[rgba(239,106,74,0.85)] hover:bg-[rgba(239,106,74,0.08)] hover:text-[var(--red)]"
+      }`}
+      onClick={onClick}
+      type="button"
+    >
+      <X size={11} aria-hidden />
+      {active ? "Rejected" : "Reject"}
     </button>
   );
 }

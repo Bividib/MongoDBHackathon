@@ -64,16 +64,21 @@ function Logo() {
 }
 
 function PayrollPill({ phase }: { phase: DemoPhase }) {
-  const dotClass =
-    phase === "bank"
-      ? "bg-[var(--green)] shadow-[0_0_8px_rgba(52,211,153,0.7)]"
-      : "bg-[var(--amber)] shadow-[0_0_8px_rgba(245,166,35,0.7)]";
+  const isBank = phase === "bank";
+  const pillClass = isBank
+    ? "border-[var(--green)]/55 bg-[rgba(52,211,153,0.18)] text-[var(--green)]"
+    : "border-[var(--red)]/55 bg-[rgba(239,106,74,0.16)] text-[var(--red)]";
+  const dotClass = isBank
+    ? "bg-[var(--green)] shadow-[0_0_8px_rgba(52,211,153,0.7)] motion-safe:animate-pulse"
+    : "bg-[var(--red)] shadow-[0_0_8px_rgba(239,106,74,0.7)] motion-safe:animate-pulse";
 
-  const label = phase === "bank" ? "Payroll Risk · WATCH" : "Payroll Risk · Friday";
+  const label = isBank ? "Payroll Risk · WATCH" : "Payroll Risk · HIGH";
 
   return (
-    <span className="inline-flex items-center gap-2.5 rounded-full border border-[var(--line-strong)] bg-[var(--surface)] px-3 py-1.5 text-xs font-medium text-[var(--text-muted)]">
-      <span className={`h-2 w-2 rounded-full ${dotClass}`} aria-hidden />
+    <span
+      className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.08em] ${pillClass}`}
+    >
+      <span aria-hidden className={`h-2 w-2 rounded-full ${dotClass}`} />
       {label}
     </span>
   );
