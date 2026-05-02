@@ -1,49 +1,75 @@
-import { Cpu, DatabaseZap } from "lucide-react";
+import { Check, Clock, Cpu } from "lucide-react";
 import { Panel } from "./Panel";
-import { StatusPill } from "./StatusPill";
-import { workerRows, type DemoPhase, type WorkerStatus } from "./cockpit-data";
+import { agentSummaryByPhase, type DemoPhase, type WorkerStatus } from "./cockpit-data";
 
 export function AgentWorkers({ phase }: { phase: DemoPhase }) {
+  const agents = agentSummaryByPhase[phase];
+
   return (
     <Panel
-      eyebrow="Six specialist workers"
       icon={<Cpu size={16} aria-hidden />}
-      title="Agent workers"
+      title="Agent status"
+      action={
+        <span className="text-[0.7rem] font-medium uppercase tracking-[0.12em] text-[var(--text-faint)]">
+          What the team did
+        </span>
+      }
       variant="default"
     >
-      <div className="grid gap-2.5">
-        {workerRows[phase].map((worker) => (
-          <article
-            key={worker.name}
-            className="rounded-[var(--radius-md)] border border-[var(--line)] bg-[var(--surface-muted)] p-3"
+      <ul className="m-0 grid gap-2 p-0">
+        {agents.map((agent) => (
+          <li
+            key={agent.name}
+            className="grid grid-cols-[20px_1fr_auto] items-start gap-3 rounded-[var(--radius-sm)] border border-[var(--line)] bg-[var(--surface-muted)] px-3 py-2.5"
           >
-            <div className="flex items-start justify-between gap-3">
-              <div className="min-w-0">
-                <h3 className="m-0 text-[0.9rem] font-semibold tracking-tight text-[var(--text)]">
-                  {worker.name}
-                </h3>
-                <p className="m-0 mt-1 text-xs font-normal leading-5 text-[var(--text-muted)]">
-                  {worker.detail}
-                </p>
-              </div>
-              <StatusPill status={worker.status} tone={statusTone(worker.status)} />
+            <StatusIcon status={agent.status} />
+            <div className="min-w-0">
+              <h3 className="m-0 text-sm font-semibold tracking-tight text-[var(--text)]">
+                {agent.name}
+              </h3>
+              <p className="m-0 mt-0.5 text-[0.82rem] font-normal leading-5 text-[var(--text-muted)]">
+                {agent.summary}
+              </p>
             </div>
-            <div className="mt-2.5 flex items-center justify-between gap-2 text-[0.7rem] font-medium text-[var(--text-faint)]">
-              <span className="truncate font-mono">{worker.runId}</span>
-              <span className="inline-flex items-center gap-1.5 text-[var(--amber-soft)]">
-                <DatabaseZap size={12} aria-hidden />
-                {worker.writes}
-              </span>
-            </div>
-          </article>
+            <span className={`text-[0.7rem] font-semibold uppercase tracking-[0.1em] ${labelColor(agent.status)}`}>
+              {labelText(agent.status)}
+            </span>
+          </li>
         ))}
-      </div>
+      </ul>
     </Panel>
   );
 }
 
-function statusTone(status: WorkerStatus) {
-  if (status === "complete") return "safe";
-  if (status === "running" || status === "queued") return "watch";
-  return "neutral";
+function StatusIcon({ status }: { status: WorkerStatus }) {
+  if (status === "complete") {
+    return (
+      <span
+        aria-hidden
+        className="mt-1 grid h-4 w-4 place-items-center rounded-full bg-[rgba(52,211,153,0.15)] text-[var(--green)]"
+      >
+        <Check size={11} />
+      </span>
+    );
+  }
+
+  return (
+    <span
+      aria-hidden
+      className="mt-1 grid h-4 w-4 place-items-center rounded-full bg-[var(--amber-tint)] text-[var(--amber-soft)]"
+    >
+      <Clock size={11} />
+    </span>
+  );
+}
+
+function labelColor(status: WorkerStatus): string {
+  if (status === "complete") return "text-[var(--green)]";
+  return "text-[var(--amber-soft)]";
+}
+
+function labelText(status: WorkerStatus): string {
+  if (status === "complete") return "Done";
+  if (status === "running") return "Working";
+  return "Waiting";
 }

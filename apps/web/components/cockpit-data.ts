@@ -324,6 +324,90 @@ export const headlineFacts = {
   approvalsCopy: "3 actions ready for you"
 };
 
+export type AgentSummary = {
+  name: string;
+  status: WorkerStatus;
+  summary: string;
+};
+
+export const agentSummaryByPhase: Record<DemoPhase, ReadonlyArray<AgentSummary>> = {
+  baseline: [
+    { name: "Event Router", status: "complete", summary: "Opened the case from this morning's scan." },
+    { name: "Forecast Agent", status: "complete", summary: "Worked out the £5,200 Friday gap." },
+    { name: "Customer Memory", status: "complete", summary: "Picked Northstar as the first call to make." },
+    { name: "Collections Agent", status: "complete", summary: "Drafted the customer reminders." },
+    { name: "Payment Run Agent", status: "complete", summary: "Recommended delaying Supplier X." },
+    { name: "Audit & Learning", status: "queued", summary: "Will write the briefing once events land." }
+  ],
+  reply: [
+    { name: "Event Router", status: "complete", summary: "Routed Northstar's reply into the case." },
+    { name: "Forecast Agent", status: "complete", summary: "Saved forecast v2 — risk still HIGH." },
+    { name: "Customer Memory", status: "complete", summary: "Flagged the reply as conditional." },
+    { name: "Collections Agent", status: "complete", summary: "Refined the Northstar follow-up." },
+    { name: "Payment Run Agent", status: "queued", summary: "Holding Supplier X plan until cash lands." },
+    { name: "Audit & Learning", status: "queued", summary: "Briefing waits on the bank event." }
+  ],
+  bank: [
+    { name: "Event Router", status: "complete", summary: "Routed Harbour Labs' bank transaction." },
+    { name: "Forecast Agent", status: "complete", summary: "Saved forecast v3 — risk eased to WATCH." },
+    { name: "Customer Memory", status: "complete", summary: "Kept the conditional flag on Northstar." },
+    { name: "Collections Agent", status: "complete", summary: "Drafts ready for your approval." },
+    { name: "Payment Run Agent", status: "complete", summary: "Switched supplier to conditional hold." },
+    { name: "Audit & Learning", status: "complete", summary: "Briefing and memory written." }
+  ]
+};
+
+export type MongoCounter = {
+  label: string;
+  value: string;
+  hint?: string;
+};
+
+export type MongoStateSnapshot = {
+  status: "connected" | "syncing";
+  message: string;
+  counters: ReadonlyArray<MongoCounter>;
+};
+
+export const mongoStateByPhase: Record<DemoPhase, MongoStateSnapshot> = {
+  baseline: {
+    status: "connected",
+    message: "Atlas is durably storing this case so nothing is lost.",
+    counters: [
+      { label: "Active case", value: "1", hint: "PR-2026-0508" },
+      { label: "Events on timeline", value: "5" },
+      { label: "Pending approvals", value: "3" },
+      { label: "Forecast versions", value: "v1", hint: "1 saved" },
+      { label: "Plan versions", value: "v1", hint: "1 saved" },
+      { label: "Memory written", value: "0" }
+    ]
+  },
+  reply: {
+    status: "connected",
+    message: "Atlas saved Northstar's reply and the new forecast.",
+    counters: [
+      { label: "Active case", value: "1", hint: "PR-2026-0508" },
+      { label: "Events on timeline", value: "9" },
+      { label: "Pending approvals", value: "3" },
+      { label: "Forecast versions", value: "v2", hint: "2 saved" },
+      { label: "Plan versions", value: "v2", hint: "2 saved" },
+      { label: "Memory written", value: "0", hint: "queued" }
+    ]
+  },
+  bank: {
+    status: "connected",
+    message: "Atlas saved the bank event, the new plan, and the briefing.",
+    counters: [
+      { label: "Active case", value: "1", hint: "PR-2026-0508" },
+      { label: "Events on timeline", value: "14" },
+      { label: "Pending approvals", value: "3" },
+      { label: "Forecast versions", value: "v3", hint: "3 saved" },
+      { label: "Plan versions", value: "v3", hint: "3 saved" },
+      { label: "Memory written", value: "1", hint: "Northstar PO rule" }
+    ]
+  }
+};
+
 export const approvalQueue = [
   {
     title: "Northstar confirmation email",
@@ -348,32 +432,60 @@ export const approvalQueue = [
   }
 ] as const;
 
-export const draftRows = [
+export type OutreachChannel = "email" | "phone" | "both";
+
+type DraftRow = {
+  title: string;
+  subtitle: string;
+  status: string;
+  channel: OutreachChannel;
+  whyChannel: string;
+  body: string;
+  voiceScript: string;
+  evidence: string;
+};
+
+export const draftRows: ReadonlyArray<DraftRow> = [
   {
     title: "Northstar — second reminder with PO",
     subtitle: "INV-1042 / PO-7781",
     status: "pending approval",
+    channel: "both",
+    whyChannel:
+      "Northstar replies to written PO references and a quick call usually closes the loop the same day.",
     body:
       "Hi Jess, following up on invoice £4,800 (18 days overdue). We've treated the original PO as confirmation of work completed. Appreciate your help getting this over the line.",
+    voiceScript:
+      "Hi Jess, it's Emma at Marlow & Finch. Just calling about INV-1042 — can you confirm the PO is back on track for Friday?",
     evidence: "Based on what's worked with Northstar before."
   },
   {
     title: "Blue Finch — firmer finance-team reminder",
     subtitle: "INV-1048",
     status: "pending approval",
+    channel: "email",
+    whyChannel:
+      "Blue Finch ignores friendly nudges; a formal finance-team email with the invoice attached has cleared bills before.",
     body:
       "Dear Accounts Payable, invoice £2,200 (7 days overdue). Please confirm payment timeline or let us know if anything's changed. Thanks.",
+    voiceScript:
+      "Hi, calling about INV-1048 from Marlow & Finch. We're chasing payment timeline — please call us back at your earliest.",
     evidence: "Written in a firmer finance-team tone."
   },
   {
     title: "Supplier X — request 5-day delay",
     subtitle: "MotionPrint / £2,400",
     status: "pending approval",
+    channel: "phone",
+    whyChannel:
+      "Personal call to Alex preserves the relationship while invoking the written 5-day grace period.",
     body:
       "Hi Alex, would you be open to a 5-day deferral on this week's payment of £2,400? We can use the grace period in our terms. Thanks for the flexibility.",
+    voiceScript:
+      "Hi Alex, Emma here. Quick one — we'd like to use the 5-day grace on this week's £2,400 invoice. Can we line that up?",
     evidence: "Uses the grace period already in your terms."
   }
-] as const;
+];
 
 export const workerRows: Record<
   DemoPhase,

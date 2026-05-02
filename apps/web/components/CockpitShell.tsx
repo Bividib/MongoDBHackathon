@@ -2,12 +2,9 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { AgentWorkers } from "./AgentWorkers";
-import { AuditWhyPanel } from "./AuditWhyPanel";
 import { DraftApprovalPanel } from "./DraftApprovalPanel";
-import { EventFeed } from "./EventFeed";
 import { FounderBriefing } from "./FounderBriefing";
-import { MainCaseBoard } from "./MainCaseBoard";
-import { MemoryCardPreview } from "./MemoryCardPreview";
+import { CashRunwayPanel, PaymentPlanRecommendation } from "./MainCaseBoard";
 import { MongoAtlasLiveState } from "./MongoAtlasLiveState";
 import { DemoControls, RiskCommandBar } from "./RiskCommandBar";
 import type { DemoPhase } from "./cockpit-data";
@@ -29,20 +26,11 @@ function phaseFromState(state: ApiCaseState): DemoPhase {
   const risk = state.case?.risk_level?.toLowerCase();
   const activeForecast = state.case?.active_forecast_id ?? "";
 
-  if (risk === "watch" || activeForecast.endsWith("_v3")) {
-    return "bank";
-  }
-
-  if (activeForecast.endsWith("_v2")) {
-    return "reply";
-  }
-
-  if (activeForecast.endsWith("_v1")) {
-    return "baseline";
-  }
+  if (risk === "watch" || activeForecast.endsWith("_v3")) return "bank";
+  if (activeForecast.endsWith("_v2")) return "reply";
+  if (activeForecast.endsWith("_v1")) return "baseline";
 
   const versions = new Set(state.forecasts?.map((forecast) => forecast.version));
-
   if (versions.has(3)) return "bank";
   if (versions.has(2)) return "reply";
   return "baseline";
@@ -67,7 +55,6 @@ export function CockpitShell() {
   const [phase, setPhase] = useState<DemoPhase>("baseline");
   const [bankFeedArmed, setBankFeedArmed] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [actionStatus, setActionStatus] = useState("Connected to MongoDB Atlas live state.");
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -76,17 +63,13 @@ export function CockpitShell() {
     async function refresh() {
       try {
         const state = await requestJson("/api/case-state");
-
         if (cancelled) return;
 
         const nextPhase = phaseFromState(state);
-
         setPhase(nextPhase);
         setError(null);
 
-        if (nextPhase === "bank") {
-          setBankFeedArmed(false);
-        }
+        if (nextPhase === "bank") setBankFeedArmed(false);
       } catch (refreshError) {
         if (!cancelled) {
           setError(refreshError instanceof Error ? refreshError.message : String(refreshError));
@@ -113,13 +96,9 @@ export function CockpitShell() {
           if (cancelled) return;
 
           const nextPhase = phaseFromState(state);
-
           setPhase(nextPhase);
 
-          if (nextPhase === "bank") {
-            setBankFeedArmed(false);
-            setActionStatus("Harbour Labs bank event landed; forecast v3 written.");
-          }
+          if (nextPhase === "bank") setBankFeedArmed(false);
         })
         .catch((pollError) => {
           if (!cancelled) {
@@ -139,7 +118,6 @@ export function CockpitShell() {
       simulateReply: async () => {
         try {
           setBankFeedArmed(false);
-          setActionStatus("Writing Northstar reply to event_inbox…");
           const result = await requestJson("/api/events/customer-reply", { method: "POST" });
           const nextPhase = phaseFromState(result);
 
@@ -150,7 +128,6 @@ export function CockpitShell() {
             setPhase(nextPhase);
           }
 
-          setActionStatus("Northstar classified as conditional; forecast v2 written.");
           setError(null);
         } catch (actionError) {
           setError(actionError instanceof Error ? actionError.message : String(actionError));
@@ -158,22 +135,14 @@ export function CockpitShell() {
       },
       startBankFeed: async () => {
         try {
-          setActionStatus("Starting simulated live bank feed…");
-
           if (phase === "baseline") {
             await requestJson("/api/events/customer-reply", { method: "POST" });
             setPhase("reply");
           }
 
-          const response = await requestJson("/api/events/start-live-feed", { method: "POST" });
-          const delayMs = "delayMs" in response ? Number(response.delayMs) : 0;
+          await requestJson("/api/events/start-live-feed", { method: "POST" });
 
           setBankFeedArmed(true);
-          setActionStatus(
-            delayMs > 0
-              ? `Live bank feed armed; Harbour Labs event due in ${Math.round(delayMs / 1000)}s.`
-              : "Live bank feed armed; waiting for Harbour Labs event."
-          );
           setError(null);
         } catch (actionError) {
           setBankFeedArmed(false);
@@ -183,7 +152,6 @@ export function CockpitShell() {
       reset: () => {
         setBankFeedArmed(false);
         setPhase("baseline");
-        setActionStatus("Local view reset. Run npm run seed for a durable MongoDB reset.");
         setError(null);
       }
     }),
@@ -192,30 +160,29 @@ export function CockpitShell() {
 
   return (
     <main className="min-h-screen bg-[var(--bg)] text-[var(--text)]">
-      <div className="mx-auto grid w-full max-w-[1480px] gap-5 px-4 py-5 sm:px-6 lg:px-8">
+      <div className="mx-auto grid w-full max-w-[1400px] gap-5 px-4 pb-28 pt-5 sm:px-6 lg:px-8">
         <RiskCommandBar phase={phase} />
 
-        <StatusBanner error={error} status={actionStatus} />
+        {error ? <ErrorToast message={error} /> : null}
+
+        <CashRunwayPanel bankFeedArmed={bankFeedArmed} phase={phase} />
 
         <section
-          aria-label="Founder cockpit"
-          className="grid gap-5 xl:grid-cols-[300px_minmax(0,1fr)_320px]"
+          aria-label="Recommended actions"
+          className="grid gap-5 lg:grid-cols-[1.05fr_0.95fr]"
         >
-          <EventFeed phase={phase} />
-          <MainCaseBoard bankFeedArmed={bankFeedArmed} phase={phase} />
-          <AuditWhyPanel phase={phase} />
+          <PaymentPlanRecommendation phase={phase} />
+          <FounderBriefing phase={phase} />
         </section>
 
         <DraftApprovalPanel />
 
         <section
-          aria-label="Behind the scenes"
-          className="grid gap-5 lg:grid-cols-2 2xl:grid-cols-4"
+          aria-label="System state"
+          className="grid gap-5 lg:grid-cols-2"
         >
-          <MongoAtlasLiveState phase={phase} />
           <AgentWorkers phase={phase} />
-          <FounderBriefing phase={phase} />
-          <MemoryCardPreview phase={phase} />
+          <MongoAtlasLiveState phase={phase} />
         </section>
 
         <div className="sr-only" aria-live="polite">
@@ -235,27 +202,17 @@ export function CockpitShell() {
   );
 }
 
-function StatusBanner({ error, status }: { error: string | null; status: string }) {
-  const isError = Boolean(error);
+function ErrorToast({ message }: { message: string }) {
   return (
     <div
-      className={`rounded-full border px-4 py-2 text-xs font-medium tracking-tight ${
-        isError
-          ? "border-[rgba(239,106,74,0.45)] bg-[rgba(239,106,74,0.10)] text-[var(--red)]"
-          : "border-[var(--line)] bg-[var(--surface-muted)] text-[var(--text-muted)]"
-      }`}
-      role="status"
+      className="rounded-full border border-[rgba(239,106,74,0.45)] bg-[rgba(239,106,74,0.10)] px-4 py-2 text-xs font-medium tracking-tight text-[var(--red)]"
+      role="alert"
     >
-      <span className="mr-2 inline-block h-1.5 w-1.5 rounded-full align-middle"
-        style={{
-          backgroundColor: isError ? "var(--red)" : "var(--green)",
-          boxShadow: isError
-            ? "0 0 8px rgba(239,106,74,0.7)"
-            : "0 0 8px rgba(52,211,153,0.7)"
-        }}
+      <span
         aria-hidden
+        className="mr-2 inline-block h-1.5 w-1.5 rounded-full bg-[var(--red)] align-middle shadow-[0_0_8px_rgba(239,106,74,0.7)]"
       />
-      {isError ? `Live API error: ${error}` : status}
+      Live API error: {message}
     </div>
   );
 }
