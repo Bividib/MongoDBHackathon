@@ -248,7 +248,8 @@ export const invoicePriority = [
     amount: formatCurrency(DEMO_CASE.northstarInvoiceAmount),
     age: "18 days overdue",
     reason: "Highest payroll leverage; PO-dependent payer",
-    action: "Ask for explicit PO/payment confirmation"
+    action: "Ask for explicit PO/payment confirmation",
+    behaviour: "Usually pays after a second nudge — worth chasing first"
   },
   {
     customer: "Blue Finch Ltd",
@@ -256,9 +257,193 @@ export const invoicePriority = [
     amount: formatCurrency(2200),
     age: "7 days overdue",
     reason: "Backup collection target; ignores friendly nudges",
-    action: "Use formal finance-team wording with invoice attached"
+    action: "Use formal finance-team wording with invoice attached",
+    behaviour: "Reliable, just slow — a firmer reminder usually works"
+  },
+  {
+    customer: "Ember & Co",
+    invoice: "INV-0996",
+    amount: formatCurrency(6500),
+    age: "31 days overdue",
+    reason: "Long-tail risk; not load-bearing this week",
+    action: "Personal note from founder once payroll clears",
+    behaviour: "Slow payer — may need a personal note from you"
   }
 ] as const;
+
+type WhatChangedItem = {
+  label: string;
+  tone: "amber" | "muted";
+};
+
+export const whatChangedByPhase: Record<DemoPhase, ReadonlyArray<WhatChangedItem>> = {
+  baseline: [
+    { label: "Northstar still hasn't paid · 18 days late", tone: "amber" },
+    { label: "Blue Finch reminder due", tone: "amber" },
+    { label: "Supplier X bill arrives Thursday", tone: "amber" },
+    { label: "Payroll runs Friday morning", tone: "amber" }
+  ],
+  reply: [
+    { label: "Northstar replied — promise is conditional on PO", tone: "amber" },
+    { label: "Forecast v2 saved · risk still HIGH", tone: "amber" },
+    { label: "Blue Finch reminder still pending", tone: "muted" },
+    { label: "Supplier X bill arrives Thursday", tone: "muted" }
+  ],
+  bank: [
+    { label: "Harbour Labs paid £1,200 retainer", tone: "amber" },
+    { label: "Risk eased to WATCH · forecast v3 saved", tone: "amber" },
+    { label: "Supplier X moved from full delay to conditional hold", tone: "amber" },
+    { label: "Founder briefing ready · memory written", tone: "muted" }
+  ]
+};
+
+export const yourPlanByPhase: Record<DemoPhase, { title: string; body: string; cta: string }> = {
+  baseline: {
+    title: "Your plan",
+    body:
+      "If you approve the three drafts on the right, payroll clears Friday assuming Northstar pays. If they don't, we'll need a backup plan — I'll watch and let you know.",
+    cta: "Why I'm recommending this"
+  },
+  reply: {
+    title: "Your plan",
+    body:
+      "Northstar's reply is helpful but conditional, so I'm keeping payroll at high risk until the PO is confirmed. Approve the follow-up email and stay holding Supplier X.",
+    cta: "Why I'm not marking this safe"
+  },
+  bank: {
+    title: "Your plan",
+    body:
+      "Harbour Labs landed £1,200, so risk is now WATCH — not safe. If you keep Supplier X on conditional hold and Northstar pays Friday, you'll finish with £800 after both bills. I'll keep watching.",
+    cta: "Why WATCH and not SAFE"
+  }
+};
+
+export const headlineFacts = {
+  shortBy: formatCurrency(5200),
+  greeting: "Good morning, Emma",
+  approvalsCopy: "3 actions ready for you"
+};
+
+export type AgentSummary = {
+  name: string;
+  status: WorkerStatus;
+  summary: string;
+};
+
+export const agentSummaryByPhase: Record<DemoPhase, ReadonlyArray<AgentSummary>> = {
+  baseline: [
+    { name: "Event Router", status: "complete", summary: "Opened the case from this morning's scan." },
+    { name: "Forecast Agent", status: "complete", summary: "Worked out the £5,200 Friday gap." },
+    { name: "Customer Memory", status: "complete", summary: "Picked Northstar as the first call to make." },
+    { name: "Collections Agent", status: "complete", summary: "Drafted the customer reminders." },
+    { name: "Payment Run Agent", status: "complete", summary: "Recommended delaying Supplier X." },
+    { name: "Audit & Learning", status: "queued", summary: "Will write the briefing once events land." }
+  ],
+  reply: [
+    { name: "Event Router", status: "complete", summary: "Routed Northstar's reply into the case." },
+    { name: "Forecast Agent", status: "complete", summary: "Saved forecast v2 — risk still HIGH." },
+    { name: "Customer Memory", status: "complete", summary: "Flagged the reply as conditional." },
+    { name: "Collections Agent", status: "complete", summary: "Refined the Northstar follow-up." },
+    { name: "Payment Run Agent", status: "queued", summary: "Holding Supplier X plan until cash lands." },
+    { name: "Audit & Learning", status: "queued", summary: "Briefing waits on the bank event." }
+  ],
+  bank: [
+    { name: "Event Router", status: "complete", summary: "Routed Harbour Labs' bank transaction." },
+    { name: "Forecast Agent", status: "complete", summary: "Saved forecast v3 — risk eased to WATCH." },
+    { name: "Customer Memory", status: "complete", summary: "Kept the conditional flag on Northstar." },
+    { name: "Collections Agent", status: "complete", summary: "Drafts ready for your approval." },
+    { name: "Payment Run Agent", status: "complete", summary: "Switched supplier to conditional hold." },
+    { name: "Audit & Learning", status: "complete", summary: "Briefing and memory written." }
+  ]
+};
+
+export type MongoCounter = {
+  label: string;
+  value: string;
+  hint?: string;
+  highlight?: boolean;
+};
+
+export type MongoStateSnapshot = {
+  status: "connected" | "syncing";
+  message: string;
+  counters: ReadonlyArray<MongoCounter>;
+};
+
+export const mongoStateByPhase: Record<DemoPhase, MongoStateSnapshot> = {
+  baseline: {
+    status: "connected",
+    message: "Atlas is durably storing this case so nothing is lost.",
+    counters: [
+      { label: "Active case", value: "1", hint: "PR-2026-0508" },
+      { label: "Events on timeline", value: "5" },
+      { label: "Pending approvals", value: "3" },
+      { label: "Forecast versions", value: "v1", hint: "1 saved" },
+      { label: "Plan versions", value: "v1", hint: "1 saved" },
+      { label: "Memory written", value: "0" }
+    ]
+  },
+  reply: {
+    status: "connected",
+    message: "Atlas saved Northstar's reply and the new forecast.",
+    counters: [
+      { label: "Active case", value: "1", hint: "PR-2026-0508" },
+      { label: "Events on timeline", value: "9" },
+      { label: "Pending approvals", value: "3" },
+      { label: "Forecast versions", value: "v2", hint: "2 saved" },
+      { label: "Plan versions", value: "v2", hint: "2 saved" },
+      { label: "Memory written", value: "0", hint: "queued" }
+    ]
+  },
+  bank: {
+    status: "connected",
+    message: "Atlas saved the bank event, the new plan, and the briefing.",
+    counters: [
+      { label: "Active case", value: "1", hint: "PR-2026-0508" },
+      { label: "Events on timeline", value: "14" },
+      { label: "Pending approvals", value: "3" },
+      { label: "Forecast versions", value: "v3", hint: "3 saved" },
+      { label: "Plan versions", value: "v3", hint: "3 saved" },
+      { label: "Memory written", value: "1", hint: "Northstar PO rule", highlight: true }
+    ]
+  }
+};
+
+export type AuditTrailItem = {
+  collection: string;
+  count: string;
+  english: string;
+};
+
+export const auditTrailByPhase: Record<DemoPhase, ReadonlyArray<AuditTrailItem>> = {
+  baseline: [
+    { collection: "event_inbox", count: "1 event", english: "Morning scan that opened this case." },
+    { collection: "agent_runs", count: "5 steps", english: "Five agents worked through the baseline." },
+    { collection: "retrieval_attempts", count: "1 search", english: "Memory looked up Northstar's payment behaviour." },
+    { collection: "cashflow_forecasts", count: "v1", english: "Initial forecast — £5,200 short on Friday." },
+    { collection: "payment_run_plans", count: "v1", english: "First plan — delay Supplier X by 5 days." },
+    { collection: "decision_log", count: "1 entry", english: "Why the supplier delay is the right call." },
+    { collection: "memory_cards", count: "0 written", english: "Will be written after the case settles." }
+  ],
+  reply: [
+    { collection: "event_inbox", count: "2 events", english: "Northstar's reply joined the morning scan." },
+    { collection: "agent_runs", count: "9 steps", english: "Memory, Forecast, and Collections re-ran." },
+    { collection: "retrieval_attempts", count: "2 searches", english: "Hybrid search saw the conditional promise." },
+    { collection: "cashflow_forecasts", count: "v2", english: "Risk stayed HIGH — the reply isn't guaranteed cash." },
+    { collection: "payment_run_plans", count: "v2", english: "Plan unchanged — Supplier X stays held." },
+    { collection: "decision_log", count: "2 entries", english: "Why the reply doesn't move risk." },
+    { collection: "memory_cards", count: "0 written", english: "Queued until the case settles." }
+  ],
+  bank: [
+    { collection: "event_inbox", count: "3 events", english: "Bank transaction joined the timeline." },
+    { collection: "agent_runs", count: "14 steps", english: "All six agents ran — Audit closed the loop." },
+    { collection: "retrieval_attempts", count: "2 searches", english: "Memory reused for the new forecast." },
+    { collection: "cashflow_forecasts", count: "v3", english: "Risk eased to WATCH after Harbour Labs paid." },
+    { collection: "payment_run_plans", count: "v3", english: "Plan switched to conditional hold on Supplier X." },
+    { collection: "decision_log", count: "3 entries", english: "Why WATCH is the right risk level — not SAFE." },
+    { collection: "memory_cards", count: "1 written", english: "Northstar PO-conditional rule saved for next case." }
+  ]
+};
 
 export const approvalQueue = [
   {
@@ -284,32 +469,60 @@ export const approvalQueue = [
   }
 ] as const;
 
-export const draftRows = [
+export type OutreachChannel = "email" | "phone" | "both";
+
+type DraftRow = {
+  title: string;
+  subtitle: string;
+  status: string;
+  channel: OutreachChannel;
+  whyChannel: string;
+  body: string;
+  voiceScript: string;
+  evidence: string;
+};
+
+export const draftRows: ReadonlyArray<DraftRow> = [
   {
-    title: "Northstar confirmation",
+    title: "Northstar — second reminder with PO",
     subtitle: "INV-1042 / PO-7781",
     status: "pending approval",
+    channel: "both",
+    whyChannel:
+      "Northstar replies to written PO references and a quick call usually closes the loop the same day.",
     body:
-      "Thanks for the update. Can you confirm the PO is re-approved and payment will clear on Friday 8 May?",
-    evidence: "Memory: PO-dependent promises need explicit confirmation"
+      "Hi Jess, following up on invoice £4,800 (18 days overdue). We've treated the original PO as confirmation of work completed. Appreciate your help getting this over the line.",
+    voiceScript:
+      "Hi Jess, it's Emma at Marlow & Finch. Just calling about INV-1042 — can you confirm the PO is back on track for Friday?",
+    evidence: "Based on what's worked with Northstar before."
   },
   {
-    title: "Blue Finch formal reminder",
+    title: "Blue Finch — firmer finance-team reminder",
     subtitle: "INV-1048",
     status: "pending approval",
+    channel: "email",
+    whyChannel:
+      "Blue Finch ignores friendly nudges; a formal finance-team email with the invoice attached has cleared bills before.",
     body:
-      "Please find INV-1048 attached. Our finance team needs confirmation of payment timing by close of business.",
-    evidence: "History: responds to formal finance-team wording"
+      "Dear Accounts Payable, invoice £2,200 (7 days overdue). Please confirm payment timeline or let us know if anything's changed. Thanks.",
+    voiceScript:
+      "Hi, calling about INV-1048 from Marlow & Finch. We're chasing payment timeline — please call us back at your earliest.",
+    evidence: "Written in a firmer finance-team tone."
   },
   {
-    title: "Supplier X conditional hold",
+    title: "Supplier X — request 5-day delay",
     subtitle: "MotionPrint / £2,400",
     status: "pending approval",
+    channel: "phone",
+    whyChannel:
+      "Personal call to Alex preserves the relationship while invoking the written 5-day grace period.",
     body:
-      "Hold payment within the written 5-day no-penalty grace period until Friday morning cash clears.",
-    evidence: "Supplier terms: non-critical this week; grace window available"
+      "Hi Alex, would you be open to a 5-day deferral on this week's payment of £2,400? We can use the grace period in our terms. Thanks for the flexibility.",
+    voiceScript:
+      "Hi Alex, Emma here. Quick one — we'd like to use the 5-day grace on this week's £2,400 invoice. Can we line that up?",
+    evidence: "Uses the grace period already in your terms."
   }
-] as const;
+];
 
 export const workerRows: Record<
   DemoPhase,

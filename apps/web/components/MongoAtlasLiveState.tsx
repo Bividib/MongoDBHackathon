@@ -1,58 +1,67 @@
-import { Database, ServerCog } from "lucide-react";
+import { Database } from "lucide-react";
 import { Panel } from "./Panel";
-import { StatusPill } from "./StatusPill";
-import { getAtlasRows, phaseSummary, type DemoPhase } from "./cockpit-data";
+import { mongoStateByPhase, type DemoPhase } from "./cockpit-data";
 
 export function MongoAtlasLiveState({ phase }: { phase: DemoPhase }) {
-  const rows = getAtlasRows(phase);
-  const summary = phaseSummary[phase];
+  const snapshot = mongoStateByPhase[phase];
 
   return (
     <Panel
-      action={<StatusPill status={summary.caseStateLabel} tone="neutral" />}
-      className="xl:min-h-[840px]"
-      eyebrow="Durable context engine"
-      icon={<Database size={18} aria-hidden />}
-      title="MongoDB Atlas Live State"
+      icon={<Database size={16} aria-hidden />}
+      title="MongoDB Atlas"
+      action={
+        <span className="inline-flex items-center gap-1.5 text-[0.7rem] font-semibold uppercase tracking-[0.1em] text-[var(--green)]">
+          <span
+            aria-hidden
+            className="h-1.5 w-1.5 rounded-full bg-[var(--green)] shadow-[0_0_8px_rgba(52,211,153,0.7)]"
+          />
+          {snapshot.status === "connected" ? "Connected" : "Syncing"}
+        </span>
+      }
+      variant="default"
     >
-      <div className="mb-4 rounded-md border border-emerald-200 bg-emerald-50 p-3">
-        <div className="flex items-center gap-2 text-sm font-black text-[var(--green)]">
-          <ServerCog size={16} aria-hidden />
-          event_inbox wakes the workflow; collections preserve the audit.
-        </div>
-      </div>
+      <p className="m-0 text-[0.78rem] font-normal leading-5 text-[var(--text-muted)]">
+        {snapshot.message}
+      </p>
 
-      <div className="overflow-hidden rounded-md border border-[var(--line)]">
-        <div className="grid grid-cols-[minmax(120px,0.85fr)_minmax(130px,1fr)_90px] gap-2 border-b border-[var(--line)] bg-[var(--panel-muted)] px-3 py-2 text-[0.68rem] font-black uppercase tracking-[0.08em] text-[var(--muted)]">
-          <span>Collection</span>
-          <span>Latest ID</span>
-          <span>Change</span>
-        </div>
-        <div className="grid max-h-[672px] overflow-auto">
-          {rows.map((row) => (
-            <article
-              key={row.collection}
-              className="grid gap-2 border-b border-[var(--line)] bg-white px-3 py-3 last:border-b-0"
+      <dl className="m-0 mt-3 grid grid-cols-3 gap-1.5 p-0">
+        {snapshot.counters.map((counter) => (
+          <div
+            key={counter.label}
+            className={`rounded-[var(--radius-sm)] border px-2.5 py-2 ${
+              counter.highlight
+                ? "border-[rgba(245,166,35,0.45)] bg-[var(--amber-tint)] shadow-[var(--shadow-amber)]"
+                : "border-[var(--line)] bg-[var(--surface-muted)]"
+            }`}
+          >
+            <dt
+              className={`m-0 text-[0.6rem] font-semibold uppercase tracking-[0.1em] ${
+                counter.highlight ? "text-[var(--amber-soft)]" : "text-[var(--text-faint)]"
+              }`}
             >
-              <div className="grid grid-cols-[minmax(120px,0.85fr)_minmax(130px,1fr)_90px] gap-2">
-                <div className="min-w-0 text-sm font-black text-[var(--navy)]">
-                  {row.collection}
-                </div>
-                <div className="min-w-0 truncate text-xs font-bold text-[var(--muted)]">
-                  {row.documentId}
-                </div>
-                <div className="text-right text-xs font-black text-[var(--blue)]">
-                  {row.change}
-                </div>
-              </div>
-              <div className="grid gap-2 text-xs font-semibold leading-5 text-[var(--muted)] sm:grid-cols-[1fr_auto] sm:items-center">
-                <span>{row.why}</span>
-                <span className="font-black text-[var(--navy)]">{row.timestamp}</span>
-              </div>
-            </article>
-          ))}
-        </div>
-      </div>
+              {counter.label}
+            </dt>
+            <dd className="m-0 mt-0.5 flex flex-wrap items-baseline gap-1">
+              <span
+                className={`text-[0.95rem] font-semibold tabular ${
+                  counter.highlight ? "text-[var(--amber-soft)]" : "text-[var(--text)]"
+                }`}
+              >
+                {counter.value}
+              </span>
+              {counter.hint ? (
+                <span
+                  className={`text-[0.62rem] font-medium ${
+                    counter.highlight ? "text-[var(--amber-soft)]" : "text-[var(--text-faint)]"
+                  }`}
+                >
+                  {counter.hint}
+                </span>
+              ) : null}
+            </dd>
+          </div>
+        ))}
+      </dl>
     </Panel>
   );
 }

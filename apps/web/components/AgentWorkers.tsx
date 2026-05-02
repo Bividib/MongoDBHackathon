@@ -1,54 +1,79 @@
-import { Cpu, DatabaseZap } from "lucide-react";
+import { Check, Clock, Cpu } from "lucide-react";
 import { Panel } from "./Panel";
-import { StatusPill } from "./StatusPill";
-import { workerRows, type DemoPhase, type WorkerStatus } from "./cockpit-data";
+import { agentSummaryByPhase, type DemoPhase, type WorkerStatus } from "./cockpit-data";
 
 export function AgentWorkers({ phase }: { phase: DemoPhase }) {
+  const agents = agentSummaryByPhase[phase];
+
   return (
     <Panel
-      eyebrow="Six specialist workers"
-      icon={<Cpu size={18} aria-hidden />}
-      title="Agent Workers"
+      icon={<Cpu size={16} aria-hidden />}
+      title="Agent status"
+      action={
+        <span className="text-[0.7rem] font-medium uppercase tracking-[0.12em] text-[var(--text-faint)]">
+          What the team did
+        </span>
+      }
+      variant="default"
     >
-      <div className="grid gap-3">
-        {workerRows[phase].map((worker) => (
-          <article
-            key={worker.name}
-            className="rounded-md border border-[var(--line)] bg-white p-3"
+      <ul className="m-0 grid gap-1.5 p-0">
+        {agents.map((agent) => (
+          <li
+            key={agent.name}
+            className="grid grid-cols-[18px_1fr_auto] items-center gap-2.5 rounded-[var(--radius-sm)] border border-[var(--line)] bg-[var(--surface-muted)] px-2.5 py-1.5"
           >
-            <div className="flex items-start justify-between gap-3">
-              <div className="min-w-0">
-                <h3 className="m-0 text-sm font-black leading-5 text-[var(--navy)]">
-                  {worker.name}
-                </h3>
-                <p className="m-0 mt-1 text-sm font-semibold leading-5 text-[var(--muted)]">
-                  {worker.detail}
-                </p>
-              </div>
-              <StatusPill status={worker.status} tone={statusTone(worker.status)} />
-            </div>
-            <div className="mt-3 grid gap-2 rounded-md border border-[var(--line)] bg-[var(--panel-muted)] px-3 py-2 text-xs font-bold text-[var(--muted)] sm:grid-cols-[1fr_auto] sm:items-center">
-              <span className="truncate">{worker.runId}</span>
-              <span className="inline-flex items-center gap-1 text-[var(--blue)]">
-                <DatabaseZap size={13} aria-hidden />
-                {worker.writes}
+            <StatusIcon status={agent.status} />
+            <div className="min-w-0">
+              <span className="block truncate text-[0.82rem] font-semibold tracking-tight text-[var(--text)]">
+                {agent.name}
+              </span>
+              <span className="block truncate text-[0.72rem] font-normal text-[var(--text-muted)]">
+                {agent.summary}
               </span>
             </div>
-          </article>
+            <span
+              className={`text-[0.62rem] font-semibold uppercase tracking-[0.12em] ${labelColor(
+                agent.status
+              )}`}
+            >
+              {labelText(agent.status)}
+            </span>
+          </li>
         ))}
-      </div>
+      </ul>
     </Panel>
   );
 }
 
-function statusTone(status: WorkerStatus) {
+function StatusIcon({ status }: { status: WorkerStatus }) {
   if (status === "complete") {
-    return "safe";
+    return (
+      <span
+        aria-hidden
+        className="grid h-4 w-4 place-items-center rounded-full bg-[rgba(52,211,153,0.15)] text-[var(--green)]"
+      >
+        <Check size={10} />
+      </span>
+    );
   }
 
-  if (status === "running" || status === "queued") {
-    return "watch";
-  }
+  return (
+    <span
+      aria-hidden
+      className="grid h-4 w-4 place-items-center rounded-full bg-[var(--amber-tint)] text-[var(--amber-soft)]"
+    >
+      <Clock size={10} />
+    </span>
+  );
+}
 
-  return "neutral";
+function labelColor(status: WorkerStatus): string {
+  if (status === "complete") return "text-[var(--green)]";
+  return "text-[var(--amber-soft)]";
+}
+
+function labelText(status: WorkerStatus): string {
+  if (status === "complete") return "Done";
+  if (status === "running") return "Working";
+  return "Waiting";
 }
