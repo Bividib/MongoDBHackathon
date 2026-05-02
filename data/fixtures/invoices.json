@@ -1,0 +1,41 @@
+[
+  {
+    "_id": "inv_1042",
+    "company_id": "cmp_marlow_finch",
+    "customer_id": "cust_northstar",
+    "invoice_number": "INV-1042",
+    "amount_gbp": 4800,
+    "status": "overdue",
+    "days_overdue": 18,
+    "due_date": "2026-04-16",
+    "expected_payment_date": "2026-05-08",
+    "dependency": "PO re-approval",
+    "priority": "high"
+  },
+  {
+    "_id": "inv_1048",
+    "company_id": "cmp_marlow_finch",
+    "customer_id": "cust_blue_finch",
+    "invoice_number": "INV-1048",
+    "amount_gbp": 2200,
+    "status": "overdue",
+    "days_overdue": 7,
+    "due_date": "2026-04-27",
+    "expected_payment_date": null,
+    "dependency": "formal reminder with invoice attached",
+    "priority": "medium"
+  },
+  {
+    "_id": "inv_1037",
+    "company_id": "cmp_marlow_finch",
+    "customer_id": "cust_ember",
+    "invoice_number": "INV-1037",
+    "amount_gbp": 6500,
+    "status": "overdue",
+    "days_overdue": 31,
+    "due_date": "2026-04-03",
+    "expected_payment_date": null,
+    "dependency": "hidden from core demo",
+    "priority": "hidden"
+  }
+]

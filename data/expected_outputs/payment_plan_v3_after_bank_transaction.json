@@ -1,0 +1,9 @@
+{
+  "_id": "payment_plan_case_0508_v3",
+  "company_id": "cmp_marlow_finch",
+  "case_id": "case_payroll_2026_05_08",
+  "version": 3,
+  "recommendation": "conditional_hold_until_customer_a_payment_clears",
+  "supplier_bill_id": "bill_motionprint_0507",
+  "human_approval_required": true
+}

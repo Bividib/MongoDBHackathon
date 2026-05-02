@@ -1,0 +1,11 @@
+[
+  {
+    "_id": "case_past_2026_03_29",
+    "company_id": "cmp_marlow_finch",
+    "summary": "A prior payroll squeeze was resolved by delaying a non-critical supplier and confirming a PO-dependent customer receipt.",
+    "lessons": [
+      "Treat conditional PO wording as uncertainty.",
+      "Supplier grace terms can create payroll runway without moving money autonomously."
+    ]
+  }
+]

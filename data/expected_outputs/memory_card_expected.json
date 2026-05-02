@@ -1,0 +1,8 @@
+{
+  "_id": "mem_northstar_po_conditional_after_case",
+  "company_id": "cmp_marlow_finch",
+  "case_id": "case_payroll_2026_05_08",
+  "customer_id": "cust_northstar",
+  "summary": "Northstar promises are conditional unless PO confirmation is explicit; use direct finance-team wording with PO reference.",
+  "next_case_preview": "Future payroll-risk cases should ask Northstar for explicit PO approval and payment release confirmation before treating receipts as likely."
+}

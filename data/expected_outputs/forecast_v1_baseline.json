@@ -1,0 +1,20 @@
+{
+  "_id": "forecast_case_0508_v1",
+  "company_id": "cmp_marlow_finch",
+  "case_id": "case_payroll_2026_05_08",
+  "version": 1,
+  "risk_level": "HIGH",
+  "current_cash_gbp": 8400,
+  "scenarios": [
+    {
+      "name": "supplier_paid_no_invoices",
+      "calculation": "8400 - 2400 - 11200",
+      "friday_position_gbp": -5200
+    },
+    {
+      "name": "supplier_held_no_receipts",
+      "calculation": "8400 - 11200",
+      "friday_position_gbp": -2800
+    }
+  ]
+}

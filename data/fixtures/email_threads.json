@@ -1,0 +1,35 @@
+[
+  {
+    "_id": "thread_northstar_inv_1042",
+    "company_id": "cmp_marlow_finch",
+    "customer_id": "cust_northstar",
+    "invoice_id": "inv_1042",
+    "subject": "INV-1042 payment timing",
+    "messages": [
+      {
+        "from": "finance@marlowfinch.example",
+        "sent_at": "2026-04-29T10:12:00.000+01:00",
+        "body": "Could you confirm when INV-1042 will be paid?"
+      },
+      {
+        "from": "finance@northstar.example",
+        "sent_at": "2026-04-29T15:44:00.000+01:00",
+        "body": "The PO is being re-approved. We expect to resolve it soon."
+      }
+    ]
+  },
+  {
+    "_id": "thread_blue_finch_inv_1048",
+    "company_id": "cmp_marlow_finch",
+    "customer_id": "cust_blue_finch",
+    "invoice_id": "inv_1048",
+    "subject": "INV-1048 overdue",
+    "messages": [
+      {
+        "from": "finance@marlowfinch.example",
+        "sent_at": "2026-04-30T09:30:00.000+01:00",
+        "body": "Friendly reminder that INV-1048 is now overdue."
+      }
+    ]
+  }
+]

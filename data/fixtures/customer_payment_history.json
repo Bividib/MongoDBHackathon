@@ -1,0 +1,18 @@
+[
+  {
+    "_id": "payhist_northstar",
+    "company_id": "cmp_marlow_finch",
+    "customer_id": "cust_northstar",
+    "summary": "Pays after PO confirmation. Conditional language has slipped before unless finance confirms PO release.",
+    "average_days_late": 14,
+    "recommended_tone": "direct finance-team wording with PO reference"
+  },
+  {
+    "_id": "payhist_blue_finch",
+    "company_id": "cmp_marlow_finch",
+    "customer_id": "cust_blue_finch",
+    "summary": "Friendly reminders are often ignored. Formal reminders with attached invoice get responses.",
+    "average_days_late": 9,
+    "recommended_tone": "formal reminder with invoice attached"
+  }
+]

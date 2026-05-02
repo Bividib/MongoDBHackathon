@@ -1,0 +1,14 @@
+{
+  "_id": "inbox_approval_motionprint_hold",
+  "event_key": "approval:motionprint_conditional_hold:v1",
+  "company_id": "cmp_marlow_finch",
+  "case_id": "case_payroll_2026_05_08",
+  "event_type": "approval.supplier_hold",
+  "source": "user",
+  "status": "backup",
+  "received_at": "2026-05-04T10:18:00.000+01:00",
+  "payload": {
+    "supplier_bill_id": "bill_motionprint_0507",
+    "approved_by": "usr_emma_marlow"
+  }
+}

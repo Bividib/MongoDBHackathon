@@ -1,0 +1,13 @@
+{
+  "scripts": {
+    "check:env": "node scripts/check-env.js",
+    "check:db": "node scripts/check-mongo-connection.js",
+    "check:providers": "node scripts/check-providers.js",
+    "check:data": "node scripts/check-data.js",
+    "seed": "node scripts/seed-demo.js",
+    "reset": "node scripts/reset-demo.js"
+  },
+  "dependencies": {
+    "mongodb": "^7.2.0"
+  }
+}

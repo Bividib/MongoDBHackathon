@@ -1,0 +1,9 @@
+{
+  "_id": "payment_plan_case_0508_v2",
+  "company_id": "cmp_marlow_finch",
+  "case_id": "case_payroll_2026_05_08",
+  "version": 2,
+  "recommendation": "continue_full_delay_until_explicit_payment_confirmation",
+  "supplier_bill_id": "bill_motionprint_0507",
+  "human_approval_required": true
+}

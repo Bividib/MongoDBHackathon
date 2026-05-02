@@ -1,0 +1,12 @@
+[
+  {
+    "_id": "terms_motionprint",
+    "company_id": "cmp_marlow_finch",
+    "supplier_id": "sup_motionprint",
+    "supplier_name": "MotionPrint",
+    "grace_days": 5,
+    "penalty_within_grace": false,
+    "relationship_risk": "low",
+    "notes": "Written terms allow a five-day no-penalty grace period."
+  }
+]

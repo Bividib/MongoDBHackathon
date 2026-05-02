@@ -1,0 +1,21 @@
+{
+  "_id": "forecast_case_0508_v3",
+  "company_id": "cmp_marlow_finch",
+  "case_id": "case_payroll_2026_05_08",
+  "version": 3,
+  "risk_level": "WATCH",
+  "event_id": "inbox_harbour_retainer_0504",
+  "current_cash_gbp": 9600,
+  "scenarios": [
+    {
+      "name": "northstar_slips_supplier_held",
+      "calculation": "9600 - 11200",
+      "friday_position_gbp": -1600
+    },
+    {
+      "name": "northstar_pays_supplier_after_payroll",
+      "calculation": "9600 + 4800 - 11200 - 2400",
+      "friday_position_gbp": 800
+    }
+  ]
+}

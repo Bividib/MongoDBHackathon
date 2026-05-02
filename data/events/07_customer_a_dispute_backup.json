@@ -1,0 +1,16 @@
+{
+  "_id": "inbox_northstar_dispute_backup",
+  "event_key": "email:reply:northstar:inv_1042:dispute_backup",
+  "company_id": "cmp_marlow_finch",
+  "case_id": "case_payroll_2026_05_08",
+  "event_type": "customer.email_reply",
+  "source": "backup_fixture",
+  "status": "backup",
+  "received_at": "2026-05-04T10:30:00.000+01:00",
+  "payload": {
+    "customer_id": "cust_northstar",
+    "invoice_id": "inv_1042",
+    "message": "We cannot pay until the PO issue is resolved and the project lead signs off the final files.",
+    "expected_classification": "payment_at_risk"
+  }
+}

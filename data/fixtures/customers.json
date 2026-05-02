@@ -1,0 +1,30 @@
+[
+  {
+    "_id": "cust_northstar",
+    "company_id": "cmp_marlow_finch",
+    "name": "Northstar Studio",
+    "demo_label": "Customer A",
+    "behaviour": "late but responsive; PO-dependent; direct finance-team wording works",
+    "primary_contact": "Maya Reeves",
+    "finance_email": "finance@northstar.example"
+  },
+  {
+    "_id": "cust_blue_finch",
+    "company_id": "cmp_marlow_finch",
+    "name": "Blue Finch Ltd",
+    "demo_label": "Customer B",
+    "behaviour": "ignores friendly reminders; responds to formal finance-team wording with invoice attached",
+    "primary_contact": "Owen Price",
+    "finance_email": "accounts@bluefinch.example"
+  },
+  {
+    "_id": "cust_ember",
+    "company_id": "cmp_marlow_finch",
+    "name": "Ember & Co",
+    "demo_label": "Hidden Customer C",
+    "behaviour": "slow payer; not shown in core demo",
+    "primary_contact": "Nina Shah",
+    "finance_email": "accounts@ember.example",
+    "visible_in_demo": false
+  }
+]

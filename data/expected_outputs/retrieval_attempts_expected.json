@@ -1,0 +1,15 @@
+[
+  {
+    "_id": "retrieval_northstar_reply_0504",
+    "company_id": "cmp_marlow_finch",
+    "case_id": "case_payroll_2026_05_08",
+    "query": "Northstar INV-1042 PO re-approved pay Friday conditional promise payment history",
+    "strategy": "hybrid_keyword_seeded_vector_fallback",
+    "top_evidence_ids": [
+      "chunk_northstar_po_memory",
+      "thread_northstar_inv_1042",
+      "payhist_northstar"
+    ],
+    "sufficient": true
+  }
+]

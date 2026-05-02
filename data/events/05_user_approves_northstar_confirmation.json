@@ -1,0 +1,14 @@
+{
+  "_id": "inbox_approval_northstar_confirmation",
+  "event_key": "approval:northstar_confirmation:v1",
+  "company_id": "cmp_marlow_finch",
+  "case_id": "case_payroll_2026_05_08",
+  "event_type": "approval.collection_draft",
+  "source": "user",
+  "status": "backup",
+  "received_at": "2026-05-04T10:12:00.000+01:00",
+  "payload": {
+    "draft_id": "draft_northstar_confirmation_v1",
+    "approved_by": "usr_emma_marlow"
+  }
+}

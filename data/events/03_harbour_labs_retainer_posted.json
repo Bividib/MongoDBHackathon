@@ -1,0 +1,17 @@
+{
+  "_id": "inbox_harbour_retainer_0504",
+  "event_key": "bank:transaction:harbour_labs_retainer:1200",
+  "company_id": "cmp_marlow_finch",
+  "case_id": "case_payroll_2026_05_08",
+  "event_type": "bank.transaction.posted",
+  "source": "eventbridge_or_local_timer",
+  "status": "pending",
+  "received_at": "2026-05-04T10:05:45.000+01:00",
+  "payload": {
+    "transaction_id": "txn_harbour_labs_0504",
+    "counterparty": "Harbour Labs",
+    "description": "Harbour Labs retainer",
+    "amount_gbp": 1200,
+    "posted_at": "2026-05-04T10:05:45.000+01:00"
+  }
+}

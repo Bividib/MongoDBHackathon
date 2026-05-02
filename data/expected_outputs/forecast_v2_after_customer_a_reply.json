@@ -1,0 +1,22 @@
+{
+  "_id": "forecast_case_0508_v2",
+  "company_id": "cmp_marlow_finch",
+  "case_id": "case_payroll_2026_05_08",
+  "version": 2,
+  "risk_level": "HIGH",
+  "event_id": "inbox_northstar_reply_0504",
+  "classification": "conditional_promise",
+  "scenarios": [
+    {
+      "name": "northstar_pays_supplier_held",
+      "calculation": "8400 + 4800 - 11200",
+      "friday_position_gbp": 2000,
+      "risk_note": "Receipt is conditional, so overall case remains HIGH."
+    },
+    {
+      "name": "northstar_slips_supplier_held",
+      "calculation": "8400 - 11200",
+      "friday_position_gbp": -2800
+    }
+  ]
+}

@@ -1,0 +1,25 @@
+[
+  {
+    "_id": "chunk_northstar_po_memory",
+    "company_id": "cmp_marlow_finch",
+    "source_file_id": "src_inv_1042_pdf",
+    "entity_ids": ["cust_northstar", "inv_1042"],
+    "text": "Northstar payment promises are conditional unless PO approval and payment date are explicitly confirmed.",
+    "tags": ["customer_memory", "po_dependency", "collections"]
+  },
+  {
+    "_id": "chunk_blue_finch_formal",
+    "company_id": "cmp_marlow_finch",
+    "entity_ids": ["cust_blue_finch", "inv_1048"],
+    "text": "Blue Finch responds better to formal finance-team reminders with the invoice attached.",
+    "tags": ["customer_memory", "collections"]
+  },
+  {
+    "_id": "chunk_motionprint_grace",
+    "company_id": "cmp_marlow_finch",
+    "source_file_id": "src_motionprint_terms",
+    "entity_ids": ["sup_motionprint"],
+    "text": "MotionPrint terms allow a five-day no-penalty grace period. Payment can be held this week with low relationship risk.",
+    "tags": ["supplier_terms", "payment_run"]
+  }
+]

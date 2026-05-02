@@ -1,0 +1,24 @@
+[
+  {
+    "_id": "draft_northstar_confirmation_v1",
+    "company_id": "cmp_marlow_finch",
+    "case_id": "case_payroll_2026_05_08",
+    "customer_id": "cust_northstar",
+    "invoice_id": "inv_1042",
+    "status": "approval_required",
+    "subject": "Confirmation needed for INV-1042 payment Friday",
+    "body": "Hi Maya, could your finance team confirm whether PO re-approval for INV-1042 is complete and whether payment will be released on Friday 8 May?",
+    "tone": "direct finance-team wording"
+  },
+  {
+    "_id": "draft_blue_finch_formal_v1",
+    "company_id": "cmp_marlow_finch",
+    "case_id": "case_payroll_2026_05_08",
+    "customer_id": "cust_blue_finch",
+    "invoice_id": "inv_1048",
+    "status": "approval_required",
+    "subject": "Overdue invoice INV-1048",
+    "body": "Dear Owen, INV-1048 for GBP 2,200 is now seven days overdue. Please confirm payment timing today. The invoice is attached for reference.",
+    "tone": "formal finance reminder"
+  }
+]

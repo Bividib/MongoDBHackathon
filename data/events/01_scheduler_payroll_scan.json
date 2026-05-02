@@ -1,0 +1,15 @@
+{
+  "_id": "inbox_scheduler_scan_0504",
+  "event_key": "scheduler:payroll_scan:case_payroll_2026_05_08",
+  "company_id": "cmp_marlow_finch",
+  "case_id": "case_payroll_2026_05_08",
+  "event_type": "scheduler.payroll_scan",
+  "source": "scheduler",
+  "status": "processed",
+  "received_at": "2026-05-04T09:00:00.000+01:00",
+  "payload": {
+    "cash_gbp": 8400,
+    "payroll_due_gbp": 11200,
+    "payroll_due_date": "2026-05-08"
+  }
+}

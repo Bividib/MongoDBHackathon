@@ -1,0 +1,20 @@
+[
+  {
+    "_id": "run_event_router_northstar_reply",
+    "agent_id": "event_router",
+    "agent_name": "Event Router",
+    "status": "completed"
+  },
+  {
+    "_id": "run_forecast_after_bank_event",
+    "agent_id": "forecast_agent",
+    "agent_name": "Forecast Agent",
+    "status": "completed"
+  },
+  {
+    "_id": "run_audit_learning_after_bank_event",
+    "agent_id": "audit_learning_agent",
+    "agent_name": "Audit / Learning Agent",
+    "status": "completed"
+  }
+]

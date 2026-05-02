@@ -1,0 +1,14 @@
+{
+  "_id": "inbox_blue_finch_no_response_tick",
+  "event_key": "timer:blue_finch:no_response",
+  "company_id": "cmp_marlow_finch",
+  "case_id": "case_payroll_2026_05_08",
+  "event_type": "collections.no_response_tick",
+  "source": "timer",
+  "status": "backup",
+  "received_at": "2026-05-04T11:00:00.000+01:00",
+  "payload": {
+    "customer_id": "cust_blue_finch",
+    "invoice_id": "inv_1048"
+  }
+}

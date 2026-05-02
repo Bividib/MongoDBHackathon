@@ -1,0 +1,10 @@
+[
+  {
+    "_id": "recurring_studio_rent",
+    "company_id": "cmp_marlow_finch",
+    "name": "Studio rent",
+    "amount_gbp": 1800,
+    "next_due_date": "2026-05-15",
+    "visible_in_demo": false
+  }
+]

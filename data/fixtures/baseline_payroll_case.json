@@ -1,0 +1,21 @@
+{
+  "_id": "case_payroll_2026_05_08",
+  "company_id": "cmp_marlow_finch",
+  "case_type": "payroll_risk",
+  "title": "Payroll Risk Case - 8 May 2026",
+  "status": "open",
+  "risk_level": "HIGH",
+  "current_cash_gbp": 8400,
+  "payroll_due_gbp": 11200,
+  "payroll_due_date": "2026-05-08",
+  "active_forecast_id": "forecast_case_0508_v1",
+  "active_payment_plan_id": "payment_plan_case_0508_v1",
+  "opened_at": "2026-05-04T09:00:00.000+01:00",
+  "updated_at": "2026-05-04T09:00:00.000+01:00",
+  "hot_state": {
+    "gap_if_supplier_paid_gbp": -5200,
+    "gap_if_supplier_held_gbp": -2800,
+    "primary_dependency": "Northstar Studio INV-1042",
+    "supplier_lever": "MotionPrint five-day grace period"
+  }
+}

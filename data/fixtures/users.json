@@ -1,0 +1,16 @@
+[
+  {
+    "_id": "usr_emma_marlow",
+    "company_id": "cmp_marlow_finch",
+    "name": "Emma Marlow",
+    "role": "Founder / Managing Director",
+    "approval_role": "final_approver"
+  },
+  {
+    "_id": "usr_jules_finch",
+    "company_id": "cmp_marlow_finch",
+    "name": "Jules Finch",
+    "role": "Finance / Operations Lead",
+    "approval_role": "finance_operator"
+  }
+]

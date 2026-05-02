@@ -1,0 +1,18 @@
+[
+  {
+    "_id": "decision_customer_reply_0504",
+    "company_id": "cmp_marlow_finch",
+    "case_id": "case_payroll_2026_05_08",
+    "decision_type": "customer_reply_classification",
+    "summary": "Northstar reply is a conditional promise, not guaranteed cash.",
+    "risk_after": "HIGH"
+  },
+  {
+    "_id": "decision_bank_event_0504",
+    "company_id": "cmp_marlow_finch",
+    "case_id": "case_payroll_2026_05_08",
+    "decision_type": "forecast_replan",
+    "summary": "Harbour Labs retainer reduces the case from HIGH to WATCH, but does not make payroll safe.",
+    "risk_after": "WATCH"
+  }
+]

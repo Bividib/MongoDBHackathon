@@ -1,0 +1,13 @@
+[
+  {
+    "_id": "bill_motionprint_0507",
+    "company_id": "cmp_marlow_finch",
+    "supplier_id": "sup_motionprint",
+    "supplier_name": "MotionPrint",
+    "amount_gbp": 2400,
+    "due_date": "2026-05-07",
+    "status": "scheduled",
+    "essentiality": "non-critical this week",
+    "recommended_action": "delay within grace period"
+  }
+]

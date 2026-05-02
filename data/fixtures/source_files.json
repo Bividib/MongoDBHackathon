@@ -1,0 +1,19 @@
+[
+  {
+    "_id": "src_inv_1042_pdf",
+    "company_id": "cmp_marlow_finch",
+    "kind": "invoice_pdf",
+    "title": "INV-1042 Northstar Studio",
+    "storage_uri": "s3://runwayops-demo-artifacts/fixtures/inv-1042.pdf",
+    "customer_id": "cust_northstar",
+    "invoice_id": "inv_1042"
+  },
+  {
+    "_id": "src_motionprint_terms",
+    "company_id": "cmp_marlow_finch",
+    "kind": "supplier_terms",
+    "title": "MotionPrint supplier terms",
+    "storage_uri": "s3://runwayops-demo-artifacts/fixtures/motionprint-terms.txt",
+    "supplier_id": "sup_motionprint"
+  }
+]

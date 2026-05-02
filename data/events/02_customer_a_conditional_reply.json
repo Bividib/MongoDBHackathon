@@ -1,0 +1,18 @@
+{
+  "_id": "inbox_northstar_reply_0504",
+  "event_key": "email:reply:northstar:inv_1042:conditional_po",
+  "company_id": "cmp_marlow_finch",
+  "case_id": "case_payroll_2026_05_08",
+  "event_type": "customer.email_reply",
+  "source": "demo_button",
+  "status": "pending",
+  "received_at": "2026-05-04T10:05:00.000+01:00",
+  "payload": {
+    "customer_id": "cust_northstar",
+    "invoice_id": "inv_1042",
+    "message": "Should be able to pay Friday once the PO is re-approved.",
+    "expected_classification": "conditional_promise",
+    "expected_confidence": 0.48,
+    "not_guaranteed_cash": true
+  }
+}
