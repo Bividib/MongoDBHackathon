@@ -37,14 +37,19 @@ function loadDotEnv(filePath = path.join(process.cwd(), ".env")) {
   }
 }
 
+function loadLocalEnvFiles() {
+  loadDotEnv(path.join(process.cwd(), ".env"));
+  loadDotEnv(path.join(process.cwd(), ".env.local"));
+}
+
 function getMongoConfig() {
-  loadDotEnv();
+  loadLocalEnvFiles();
 
   const uri = process.env.MONGODB_URI || process.env.MONGO_DB_CONNECTION;
   const dbName = process.env.MONGODB_DB || "runwayops_demo";
 
   if (!uri) {
-    throw new Error("Missing MONGODB_URI or MONGO_DB_CONNECTION in .env");
+    throw new Error("Missing MONGODB_URI or MONGO_DB_CONNECTION in .env or .env.local");
   }
 
   return { uri, dbName };
@@ -53,4 +58,5 @@ function getMongoConfig() {
 module.exports = {
   getMongoConfig,
   loadDotEnv,
+  loadLocalEnvFiles,
 };

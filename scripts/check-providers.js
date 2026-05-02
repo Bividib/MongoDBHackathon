@@ -1,7 +1,10 @@
 const fs = require("node:fs");
 const path = require("node:path");
 
-const envPath = path.join(process.cwd(), ".env");
+const envPaths = [
+  path.join(process.cwd(), ".env"),
+  path.join(process.cwd(), ".env.local"),
+];
 
 function loadDotEnv(filePath) {
   if (!fs.existsSync(filePath)) {
@@ -38,6 +41,12 @@ function loadDotEnv(filePath) {
   }
 
   return values;
+}
+
+function loadLocalEnvFiles() {
+  return envPaths.reduce((merged, filePath) => {
+    return { ...merged, ...loadDotEnv(filePath) };
+  }, {});
 }
 
 async function checkElevenLabs(env) {
@@ -102,7 +111,7 @@ async function checkFireworks(env) {
 }
 
 async function main() {
-  const env = loadDotEnv(envPath);
+  const env = loadLocalEnvFiles();
   const checks = await Promise.allSettled([
     checkElevenLabs(env),
     checkFireworks(env),

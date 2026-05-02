@@ -2,7 +2,10 @@ const fs = require("node:fs");
 const path = require("node:path");
 const { MongoClient } = require("mongodb");
 
-const envPath = path.join(process.cwd(), ".env");
+const envPaths = [
+  path.join(process.cwd(), ".env"),
+  path.join(process.cwd(), ".env.local"),
+];
 
 function loadDotEnv(filePath) {
   if (!fs.existsSync(filePath)) {
@@ -40,6 +43,12 @@ function loadDotEnv(filePath) {
   }
 }
 
+function loadLocalEnvFiles() {
+  for (const envPath of envPaths) {
+    loadDotEnv(envPath);
+  }
+}
+
 function redactConnectionDetails(message) {
   return message
     .replace(/mongodb(?:\+srv)?:\/\/[^\s]+/gi, "[redacted MongoDB URI]")
@@ -47,12 +56,12 @@ function redactConnectionDetails(message) {
 }
 
 async function main() {
-  loadDotEnv(envPath);
+  loadLocalEnvFiles();
 
   const uri = process.env.MONGODB_URI || process.env.MONGO_DB_CONNECTION;
 
   if (!uri) {
-    throw new Error("Missing MONGODB_URI or MONGO_DB_CONNECTION in .env");
+    throw new Error("Missing MONGODB_URI or MONGO_DB_CONNECTION in .env or .env.local");
   }
 
   const client = new MongoClient(uri, {

@@ -18,6 +18,9 @@ pnpm-debug.log*
 dist/
 build/
 coverage/
+.next/
+out/
+*.tsbuildinfo
 .cache/
 .parcel-cache/
 .vite/
