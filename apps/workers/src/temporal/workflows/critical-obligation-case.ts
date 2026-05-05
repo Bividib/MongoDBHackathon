@@ -53,6 +53,19 @@ export interface CriticalObligationCaseResult {
   pausedReason?: string | undefined;
 }
 
+/**
+ * Critical-obligation case mode is **scoped past Round 4** (Phase 11+).
+ * The workflow itself is structurally complete and replay-deterministic
+ * — it sits in the harness so the dispatcher / signal plumbing can be
+ * exercised end-to-end. The pieces that need real backing before we
+ * graduate this beyond simulation:
+ *   - `case_files` table and a repo to persist case state.
+ *   - `identifySupplierTimingOptions` activity needs `supplier_bills`
+ *     plus a real supplier-timing engine (Round 5+).
+ *   - Voice channel revival from `legacy/` for in-case calls.
+ * Until then, treat this workflow as wired but not on the daily-loop
+ * critical path.
+ */
 export async function CriticalObligationCaseWorkflow(
   input: CriticalObligationCaseInput
 ): Promise<CriticalObligationCaseResult> {

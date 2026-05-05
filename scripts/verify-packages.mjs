@@ -77,6 +77,7 @@ const steps = [
   ["domain typecheck", "npm", ["run", "typecheck", "--prefix", resolve(rootDir, "packages/domain")]],
   ["domain tests", "npm", ["test", "--prefix", resolve(rootDir, "packages/domain")]],
   ["cash-engine typecheck", "npm", ["run", "typecheck", "--prefix", resolve(rootDir, "packages/cash-engine")]],
+  ["cash-engine build", "npm", ["run", "build", "--prefix", resolve(rootDir, "packages/cash-engine")]],
   ["cash-engine tests", "npm", ["test", "--prefix", resolve(rootDir, "packages/cash-engine")]],
   ["ai typecheck", "npm", ["run", "typecheck", "--prefix", resolve(rootDir, "packages/ai")]],
   ["ai build", "npm", ["run", "build", "--prefix", resolve(rootDir, "packages/ai")]],

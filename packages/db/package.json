@@ -15,6 +15,7 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@runwayops/cash-engine": "file:../cash-engine",
     "@runwayops/domain": "file:../domain",
     "drizzle-orm": "^0.44.2",
     "pg": "^8.16.0"

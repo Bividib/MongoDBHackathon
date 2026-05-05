@@ -123,12 +123,12 @@ CI runs `verify:full` on every PR via [.github/workflows/verify.yml](./.github/w
 | `domain` | 32 | Money arithmetic, schemas for every entity, type round-trips |
 | `cash-engine` | 13 | Forecast, ranking, matching, money invariants |
 | `ai` | 85 | Mappers, validators, eval suite (≥95% accuracy thresholds), adversarial corpus |
-| `db` | 22 | Repos, source dedup, idempotency, outbox, RLS isolation, forecast bigint round-trip |
+| `db` | 29 | Repos, source dedup, idempotency, outbox, RLS isolation, forecast bigint round-trip, fact-loader |
 | `policy` | 24 | All 6 hard-refusal rules, gate brand, ts-expect-error type tests |
 | `workers` | 11 | 4 workflow replay tests, 6 dispatcher tests, 1 e2e simulation |
 | `api` | 24 | Endpoints, tenancy, idempotency, policy gate (4 real-PG integration tests) |
 | `web` | 17 | Wire format, hard-refusal UI invariants |
-| **total** | **228** | zero skips under `verify:full` |
+| **total** | **235** | zero skips under `verify:full` |
 
 ---
 
@@ -148,18 +148,32 @@ CI runs `verify:full` on every PR via [.github/workflows/verify.yml](./.github/w
   and approval flows; hard refusals (no payment buttons, no safety
   claims) are enforced in components and tested.
 
+## What's done in Round 3.7 (cash-engine wiring prep)
+
+- Six new db repos project rows into the cash-engine input contract:
+  invoices, payments, bank (balance + transactions), critical
+  obligations, company policy whitelist, and a `loadFinancialFactsForForecast`
+  aggregate that the workers fact-loader activity will call directly.
+- `cash-engine` now ships a real `dist/` (was source-only). Adding `db
+  → cash-engine` for type sharing forced the change; consumers without
+  `allowImportingTsExtensions` now resolve the package the normal way.
+
 ## What's deferred to Round 4
 
-- Cash-engine wiring in workers activities (currently stub data).
-  Depends on adding repos for invoice listing, supplier_bills,
-  customer_payment_stats, communication_messages, evidence_chunks.
-- Web → real API (currently fixture-driven).
-- Simulated integration adapters (Xero stub, bank stub, email stub) per
-  spec's "simulation first" principle.
-- Demo seed coverage of new domain types.
+- Workers activities still hold stub data — Round 4 Session E swaps them
+  for `loadFinancialFactsForForecast` + `computeCashForecast` /
+  `rankNextBestActions`.
+- Web → real API (currently fixture-driven). Round 4 Session F.
+- Xero simulated adapter via a `packages/integrations` interface. Round
+  4 Session G.
 
-## Beyond Round 4
+## What's deferred past Round 4 (intentional)
 
+- `supplier_bills`, `customer_payment_stats`, `evidence_chunks`,
+  `case_files`: tables / repos exist in the spec but no consumer needs
+  them in Round 4. Adding them now would mean deferred unused code.
+- Communications repo helpers: not on the cash-engine fact-loader path.
+  Will land when the AI message-context loader needs them.
 - Real OAuth + Xero / GoCardless / TrueLayer / Gmail / Outlook adapters.
 - Approved external dispatch (drafts → approver → real send).
 - Critical-obligation case mode and voice channel revival from `legacy/`.
