@@ -97,7 +97,7 @@ npm install
 
 # Install per-workspace deps (file: links, not npm workspaces)
 for pkg in packages/domain packages/cash-engine packages/ai packages/db \
-           packages/policy apps/workers apps/api apps/web; do
+           packages/integrations packages/policy apps/workers apps/api apps/web; do
   npm install --prefix "$pkg"
 done
 

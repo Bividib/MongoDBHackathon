@@ -62,6 +62,46 @@ function preflight() {
   }
   checkPkgJson(join(rootDir, "package.json"));
 
+  // 3. CI workflow install list and README quick-start install list
+  //    must mention every workspace package that exists on disk.
+  //    A new package added without updating these breaks CI cold
+  //    checkouts with `Cannot find module '@runwayops/<dep>'` because
+  //    `npm install` is never run inside the new workspace.
+  const workspaceDirs = [];
+  for (const dir of ["packages", "apps"]) {
+    const root = join(rootDir, dir);
+    if (!existsSync(root)) continue;
+    for (const sub of readdirSync(root)) {
+      if (existsSync(join(root, sub, "package.json"))) {
+        workspaceDirs.push(`${dir}/${sub}`);
+      }
+    }
+  }
+
+  const ciWorkflow = join(rootDir, ".github/workflows/verify.yml");
+  if (existsSync(ciWorkflow)) {
+    const yml = readFileSync(ciWorkflow, "utf8");
+    for (const ws of workspaceDirs) {
+      if (!yml.includes(ws)) {
+        violations.push(
+          `.github/workflows/verify.yml install loop is missing \`${ws}\`. Cold CI checkouts will fail with "Cannot find module".`,
+        );
+      }
+    }
+  }
+
+  const readme = join(rootDir, "README.md");
+  if (existsSync(readme)) {
+    const md = readFileSync(readme, "utf8");
+    for (const ws of workspaceDirs) {
+      if (!md.includes(ws)) {
+        violations.push(
+          `README.md is missing \`${ws}\` — quick-start install loop or test surface drift.`,
+        );
+      }
+    }
+  }
+
   if (violations.length > 0) {
     console.error("\nPre-flight failed:");
     for (const v of violations) console.error(`  ✗ ${v}`);

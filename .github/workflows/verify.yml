@@ -65,8 +65,12 @@ jobs:
       - name: Install workspace deps
         # Workspace links use file: rather than npm workspaces, so install
         # each package/app explicitly. Order matters: domain → consumers.
+        # Keep this list in sync with README "Quick start" and
+        # scripts/verify-packages.mjs steps. Missing entries fail CI with
+        # `Cannot find module '@runwayops/<pkg>'` because the cold CI
+        # checkout has no node_modules pre-populated.
         run: |
-          for pkg in packages/domain packages/cash-engine packages/ai packages/db packages/policy apps/workers apps/api apps/web; do
+          for pkg in packages/domain packages/cash-engine packages/ai packages/db packages/integrations packages/policy apps/workers apps/api apps/web; do
             echo "==> installing $pkg"
             npm install --prefix "$pkg" --no-audit --no-fund
           done
