@@ -7,10 +7,13 @@ human-approved communications, and learns from outcomes.
 
 **Status:** simulated daily action loop end-to-end across foundation
 packages, API, web, workers, and policy engine, plus a Xero-simulated
-integrations adapter and demo-mode header tenancy in the API. 262
+integrations adapter, demo-mode header tenancy in the API, and a real
+Anthropic-backed `ModelRouter` available behind an env kill switch
+(`AI_MODE=anthropic` + `ANTHROPIC_API_KEY`; default is mock). 282
 tests pass via `npm run verify:full` (real Postgres + RLS + dispatcher
 + e2e workflow simulation + API policy gate + integrations real-PG
-sync + workers cash-engine wiring + web→API demo-header).
+sync + workers cash-engine wiring + web→API demo-header + AI factory/
+adapter/budget guard).
 
 Source of truth for product + architecture:
 - [`New Spec.md`](./New%20Spec.md) — full product specification
@@ -124,14 +127,14 @@ CI runs `verify:full` on every PR via [.github/workflows/verify.yml](./.github/w
 |---|---|---|
 | `domain` | 32 | Money arithmetic, schemas for every entity, type round-trips |
 | `cash-engine` | 13 | Forecast, ranking, matching, money invariants |
-| `ai` | 85 | Mappers, validators, eval suite (≥95% accuracy thresholds), adversarial corpus |
+| `ai` | 105 | Mappers, validators, eval suite (≥95% accuracy thresholds), adversarial corpus, real-Anthropic adapter, cost-controlled router, env-gated factory |
 | `db` | 29 | Repos, source dedup, idempotency, outbox, RLS isolation, forecast bigint round-trip, fact-loader |
 | `integrations` | 16 | Provider mapper, Xero simulated adapter, source-object dedup (real-PG) |
 | `policy` | 24 | All 6 hard-refusal rules, gate brand, ts-expect-error type tests |
 | `workers` | 13 | 4 workflow replay tests, 6 dispatcher tests, 1 e2e simulation, 2 engine-projection tests |
 | `api` | 27 | Endpoints, tenancy, idempotency, policy gate, demo-mode header (UUID-guarded) |
 | `web` | 23 | Wire format, hard-refusal UI invariants, API client, wire→view-model adapters |
-| **total** | **262** | zero skips under `verify:full` |
+| **total** | **282** | zero skips under `verify:full` |
 
 ---
 
