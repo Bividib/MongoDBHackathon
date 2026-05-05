@@ -13,6 +13,14 @@ import pg from "pg";
 
 const { Pool } = pg;
 
+/**
+ * Per-event handler. Returning normally marks the event published;
+ * throwing triggers the retry/backoff path. Handlers must be
+ * idempotent — at-least-once delivery means the same event id can be
+ * delivered more than once on retry.
+ */
+export type DispatchHandler = (event: DispatchedEvent) => Promise<void> | void;
+
 export interface DispatcherConfig {
   /** Maximum events per poll cycle */
   batchSize: number;
@@ -24,6 +32,13 @@ export interface DispatcherConfig {
   backoffBaseSeconds: number;
   /** Max backoff cap in seconds */
   backoffCapSeconds: number;
+  /**
+   * Per-eventType dispatch handlers. Keys match
+   * `outbox_events.event_type` exactly. When no handler matches an
+   * event the default behaviour (`logDispatch`) fires — a structured
+   * stdout log so unrouted events are visible, not silently consumed.
+   */
+  handlers?: Readonly<Record<string, DispatchHandler>>;
 }
 
 export const DEFAULT_DISPATCHER_CONFIG: DispatcherConfig = {
@@ -148,10 +163,11 @@ export async function recordFailure(
 }
 
 /**
- * Dispatch a single event. In Round 3 this appends to structured log.
- * In Round 4 this will publish to SQS/EventBridge/Kafka.
+ * Default dispatch behaviour for events with no registered handler:
+ * write a structured stdout line. Visible-by-default keeps unrouted
+ * events from silently disappearing.
  */
-export function dispatchEvent(event: DispatchedEvent): void {
+export function logDispatch(event: DispatchedEvent): void {
   const logEntry = {
     level: "info",
     msg: "outbox_dispatched",
@@ -163,6 +179,23 @@ export function dispatchEvent(event: DispatchedEvent): void {
     ts: new Date().toISOString()
   };
   process.stdout.write(JSON.stringify(logEntry) + "\n");
+}
+
+/**
+ * Dispatch a single event. Looks up `config.handlers[eventType]`,
+ * falls back to `logDispatch` when no handler matches. Throws on
+ * handler failure so `pollOnce` can record a retry.
+ */
+export async function dispatchEvent(
+  event: DispatchedEvent,
+  config: DispatcherConfig = DEFAULT_DISPATCHER_CONFIG,
+): Promise<void> {
+  const handler = config.handlers?.[event.eventType];
+  if (handler) {
+    await handler(event);
+    return;
+  }
+  logDispatch(event);
 }
 
 /**
@@ -179,7 +212,7 @@ export async function pollOnce(
 
   for (const event of batch) {
     try {
-      dispatchEvent(event);
+      await dispatchEvent(event, config);
       await markDispatched(pool, event.id);
       dispatched++;
     } catch (err) {
