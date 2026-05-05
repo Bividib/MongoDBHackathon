@@ -3,6 +3,7 @@ import { fileURLToPath } from "node:url";
 import { NativeConnection, Worker } from "@temporalio/worker";
 
 import * as activities from "./temporal/activities/index.js";
+import { initActivityContext } from "./temporal/activities/index.js";
 
 const TASK_QUEUE = process.env.TEMPORAL_TASK_QUEUE ?? "runwayops-default";
 
@@ -23,6 +24,17 @@ const TASK_QUEUE = process.env.TEMPORAL_TASK_QUEUE ?? "runwayops-default";
  * well-formed.
  */
 export async function startWorker(): Promise<Worker> {
+  // Initialise the shared activity context BEFORE registering activities.
+  // The worker process is the only entry point for production AI calls,
+  // so this is also where `AI_MODE` resolves to a router. Logging the
+  // resolved mode is the cheapest way to catch silent misconfiguration
+  // (e.g. AI_MODE set in shell but not propagated to the worker process).
+  const ctx = initActivityContext();
+  // eslint-disable-next-line no-console
+  console.info(
+    `[worker] activity context initialised (ai_mode=${ctx.aiMode}, task_queue=${TASK_QUEUE})`,
+  );
+
   const connection = await NativeConnection.connect({
     address: process.env.TEMPORAL_ADDRESS ?? "localhost:7233"
   });
