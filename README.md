@@ -139,10 +139,10 @@ CI runs `verify:full` on every PR via [.github/workflows/verify.yml](./.github/w
 | `db` | 32 | Repos, source dedup, idempotency, outbox, RLS isolation, forecast bigint round-trip, fact-loader, integration-tokens (real-PG) |
 | `integrations` | 33 | Provider mapper, Xero simulated adapter, Xero real adapter (paginated wire contract), Xero OAuth helpers, factory with refresh-on-demand, source-object dedup (real-PG) |
 | `policy` | 24 | All 6 hard-refusal rules, gate brand, ts-expect-error type tests |
-| `workers` | 22 | 5 workflow replay tests (incl. integration-sync), 6 dispatcher tests, 1 e2e simulation, 2 engine-projection tests, 6 activity-context wiring tests, 2 runProviderSync real-PG tests |
+| `workers` | 23 | 5 workflow replay tests (incl. integration-sync), 6 dispatcher tests, 1 e2e mock simulation, 1 e2e real-activities + real-PG, 2 engine-projection tests, 6 activity-context wiring tests, 2 runProviderSync real-PG tests |
 | `api` | 27 | Endpoints, tenancy, idempotency, policy gate, demo-mode header (UUID-guarded) |
 | `web` | 23 | Wire format, hard-refusal UI invariants, API client, wire→view-model adapters |
-| **total** | **311** | zero skips under `verify:full` |
+| **total** | **312** | zero skips under `verify:full` |
 
 ---
 

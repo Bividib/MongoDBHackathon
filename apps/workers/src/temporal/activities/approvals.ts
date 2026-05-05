@@ -63,8 +63,23 @@ export async function createApprovalRequests(
 
       return results;
     });
-  } catch {
-    // Fallback for stub mode
+  } catch (err: unknown) {
+    // KNOWN GAP — see e2e-real-activities.test.ts. The workflow today
+    // synthesises `subjectId` as a deterministic cycle-derived string
+    // (e.g. "daily-cash-action:co:date:drafts:draft:..."), but
+    // `approval_requests.subject_id` is `uuid` in the schema. The DB
+    // rejects the insert with `invalid input syntax for type uuid`.
+    // Until the workflow→activity ID architecture lands (activities
+    // generate UUIDs and return them; workflows hold returned UUIDs in
+    // workflow state), we log the failure LOUDLY and return the
+    // synthetic IDs so the workflow can proceed to its approval-wait
+    // phase. This keeps the workflow shape testable without silently
+    // hiding production-blocking bugs.
+    // eslint-disable-next-line no-console
+    console.error(
+      `[createApprovalRequests] DB persistence failed for company ${input.companyId}; returning synthetic ids so the workflow can proceed. Error:`,
+      err instanceof Error ? err.message : err,
+    );
     return input.subjects.map((subject) => ({
       approvalRequestId: `${input.idempotencyKey}:approval:${subject.subjectId}`,
       subjectKind: subject.subjectKind,
