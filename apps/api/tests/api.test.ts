@@ -7,7 +7,7 @@
  * Integration tests (gated on TEST_DATABASE_URL): tenant isolation,
  * idempotency replay, full happy-path flows.
  */
-import { describe, it, expect, beforeAll } from "vitest";
+import { describe, it, expect, beforeAll, afterAll } from "vitest";
 
 import { buildApp } from "../src/server.js";
 
@@ -190,23 +190,186 @@ describe("Route structure", () => {
 });
 
 // ---------------------------------------------------------------------------
-// Integration tests (gated on TEST_DATABASE_URL + ADMIN_DATABASE_URL)
+// Integration tests — exercise the policy gate on real Postgres data
 // ---------------------------------------------------------------------------
 
 const hasRealDb = Boolean(process.env.TEST_DATABASE_URL && process.env.ADMIN_DATABASE_URL);
 
-describe.skipIf(!hasRealDb)("Integration: tenant isolation", () => {
-  it("company A cannot read company B data", async () => {
-    // This test requires real DB with seeded data
-    // The pattern: two companies, each inserts a forecast, then each
-    // can only see its own via the API. Full implementation depends on
-    // seed in verify-full. For now, placeholder that demonstrates the gate.
-    expect(hasRealDb).toBe(true);
-  });
-});
+describe.skipIf(!hasRealDb)("Integration: policy gate at approve time", async () => {
+  // Lazy imports keep the unit-test suite from loading pg deps when no DB
+  // is available. These imports only resolve when the integration suite
+  // actually runs.
+  const { default: pg } = await import("pg");
+  const { Pool } = pg;
 
-describe.skipIf(!hasRealDb)("Integration: idempotency replay", () => {
-  it("POST twice with same key returns same response, single mutation", async () => {
-    expect(hasRealDb).toBe(true);
+  let adminPool: InstanceType<typeof pg.Pool>;
+  let companyId: string;
+  let customerId: string;
+  let userId: string;
+  const userEmail = "policy-test@runwayops.dev";
+
+  // Seed helpers run as the admin role (BYPASSRLS) so we can bootstrap
+  // cross-tenant fixtures the API would never legitimately create.
+  beforeAll(async () => {
+    adminPool = new Pool({ connectionString: process.env.ADMIN_DATABASE_URL! });
+
+    const stamp = `${Date.now()}-${Math.floor(Math.random() * 1e6)}`;
+    const co = await adminPool.query<{ id: string }>(
+      `INSERT INTO companies (display_name, slug) VALUES ($1, $2) RETURNING id`,
+      [`Policy Test Co ${stamp}`, `policy-test-${stamp}`],
+    );
+    companyId = co.rows[0]!.id;
+
+    const cust = await adminPool.query<{ id: string }>(
+      `INSERT INTO customers (company_id, display_name) VALUES ($1, $2) RETURNING id`,
+      [companyId, "Policy Test Customer"],
+    );
+    customerId = cust.rows[0]!.id;
+
+    const user = await adminPool.query<{ id: string }>(
+      `INSERT INTO users (email, display_name) VALUES ($1, $2)
+       ON CONFLICT (email) DO UPDATE SET display_name = EXCLUDED.display_name
+       RETURNING id`,
+      [userEmail, "Policy Tester"],
+    );
+    userId = user.rows[0]!.id;
+
+    await adminPool.query(
+      `INSERT INTO memberships (user_id, company_id, role) VALUES ($1, $2, 'admin')
+       ON CONFLICT (user_id, company_id) DO NOTHING`,
+      [userId, companyId],
+    );
+  });
+
+  afterAll(async () => {
+    if (companyId) {
+      await adminPool.query(`DELETE FROM companies WHERE id = $1`, [companyId]);
+    }
+    if (userEmail) {
+      await adminPool.query(`DELETE FROM users WHERE email = $1`, [userEmail]);
+    }
+    await adminPool.end();
+  });
+
+  async function seedAction(overrides: {
+    actionKind?: string;
+    channel?: string;
+    reason?: string;
+    evidenceRefs?: unknown[];
+  } = {}) {
+    const inserted = await adminPool.query<{ id: string }>(
+      `INSERT INTO collection_actions (
+        company_id, customer_id, action_kind, channel, status,
+        priority_score, evidence_confidence, requires_approval,
+        reason, evidence_refs, recommended_at
+      ) VALUES (
+        $1, $2, $3, $4, 'awaiting_approval',
+        50, 0.8, true,
+        $5, $6::jsonb, now()
+      ) RETURNING id`,
+      [
+        companyId,
+        customerId,
+        overrides.actionKind ?? "request_payment",
+        overrides.channel ?? "email",
+        overrides.reason ?? "Standard reminder for overdue invoice INV-001.",
+        JSON.stringify(
+          overrides.evidenceRefs ?? [
+            { kind: "invoice", id: "inv-001", summary: "Invoice INV-001 overdue 14d" },
+          ],
+        ),
+      ],
+    );
+    return inserted.rows[0]!.id;
+  }
+
+  async function approve(actionId: string, idempotencyKey: string) {
+    return app.inject({
+      method: "POST",
+      url: `/api/actions/${actionId}/approve`,
+      headers: {
+        "x-user-email": userEmail,
+        "x-company-id": companyId,
+        "idempotency-key": idempotencyKey,
+        "content-type": "application/json",
+      },
+      payload: {},
+    });
+  }
+
+  it("ALLOWS approval of a valid action with evidence", async () => {
+    const actionId = await seedAction();
+    const res = await approve(actionId, `valid-${actionId}`);
+    expect(res.statusCode).toBe(200);
+    expect(res.json().ok).toBe(true);
+
+    // Confirm the status actually flipped in the DB.
+    const check = await adminPool.query<{ status: string }>(
+      `SELECT status FROM collection_actions WHERE id = $1`,
+      [actionId],
+    );
+    expect(check.rows[0]!.status).toBe("approved");
+  });
+
+  it("DENIES approval when evidenceRefs is empty (rejectIfMissingEvidence)", async () => {
+    const actionId = await seedAction({ evidenceRefs: [] });
+    const res = await approve(actionId, `no-evidence-${actionId}`);
+    expect(res.statusCode).toBe(422);
+    expect(res.json().ok).toBe(false);
+    expect(res.json().error.code).toBe("POLICY_DENIED");
+    expect(res.json().error.message).toContain("rejectIfMissingEvidence");
+
+    // Confirm the status did NOT flip.
+    const check = await adminPool.query<{ status: string }>(
+      `SELECT status FROM collection_actions WHERE id = $1`,
+      [actionId],
+    );
+    expect(check.rows[0]!.status).toBe("awaiting_approval");
+
+    // Confirm an audit row was written for the policy denial.
+    const audit = await adminPool.query<{ action: string }>(
+      `SELECT action FROM audit_events WHERE target_id = $1 AND action LIKE '%policy%'`,
+      [actionId],
+    );
+    expect(audit.rows.length).toBeGreaterThan(0);
+  });
+
+  it("DENIES approval when reason text claims an obligation is safe (rejectIfClaimsObligationSafe)", async () => {
+    const actionId = await seedAction({
+      reason: "Approving because payroll is safe and tax will be paid on time.",
+    });
+    const res = await approve(actionId, `safety-claim-${actionId}`);
+    expect(res.statusCode).toBe(422);
+    expect(res.json().error.code).toBe("POLICY_DENIED");
+    expect(res.json().error.message).toContain("rejectIfClaimsObligationSafe");
+
+    const check = await adminPool.query<{ status: string }>(
+      `SELECT status FROM collection_actions WHERE id = $1`,
+      [actionId],
+    );
+    expect(check.rows[0]!.status).toBe("awaiting_approval");
+  });
+
+  it("ALLOWS rejection regardless of policy state (rejection is the safe path)", async () => {
+    // Even an action with missing evidence can still be REJECTED — that's
+    // the safe path. Policy gating only fires on approve.
+    const actionId = await seedAction({ evidenceRefs: [] });
+    const res = await app.inject({
+      method: "POST",
+      url: `/api/actions/${actionId}/reject`,
+      headers: {
+        "x-user-email": userEmail,
+        "x-company-id": companyId,
+        "idempotency-key": `reject-${actionId}`,
+        "content-type": "application/json",
+      },
+      payload: { note: "no evidence — drop it" },
+    });
+    expect(res.statusCode).toBe(200);
+    const check = await adminPool.query<{ status: string }>(
+      `SELECT status FROM collection_actions WHERE id = $1`,
+      [actionId],
+    );
+    expect(check.rows[0]!.status).toBe("rejected");
   });
 });

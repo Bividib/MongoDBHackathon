@@ -1,0 +1,86 @@
+name: verify
+
+# Runs the full RunwayOps verification matrix on every PR and push to main.
+#
+# What it covers:
+#   - Typecheck + build + tests for all packages and apps:
+#       domain, cash-engine, ai, db, policy, workers, api, web
+#   - Real-Postgres integration tests (RLS, repository round-trips,
+#     dispatcher claim/retry/dead-letter, e2e workflow simulation,
+#     policy gate at API approve time) by booting docker-compose and
+#     running `npm run verify:full`.
+#
+# This is the only thing that catches regressions like a session writing
+# tests gated on TEST_DATABASE_URL but never actually setting the env —
+# locally green, CI red, mismatch caught before merge.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch: {}
+
+# Cancel an in-progress run on the same ref when a newer commit arrives.
+concurrency:
+  group: verify-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: verify:full (real Postgres)
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          # cash-engine requires >=22.6; everything else is 20+. Use 22 LTS.
+          node-version: "22"
+          cache: npm
+
+      - name: Confirm docker compose is available
+        run: docker compose version
+
+      # `npm run verify:full` already drives docker-compose end-to-end:
+      #   * boots a Postgres 16 container with the runwayops_app
+      #     non-superuser role provisioned via init SQL,
+      #   * applies migrations as the postgres superuser,
+      #   * runs `npm run verify` with TEST_DATABASE_URL +
+      #     ADMIN_DATABASE_URL set so RLS + repo-real + workers
+      #     dispatcher/e2e + API policy-gate integration tests all run.
+      #
+      # We do NOT pre-install in workspaces individually because each
+      # package/app installs its own deps via the file: workspace links.
+      # The verify:full script invokes `npm install` per workspace as
+      # needed (or expects them already installed locally — installing
+      # here at the root via -ws keeps fresh checkouts honest).
+      - name: Install root deps
+        run: npm install
+
+      - name: Install workspace deps
+        # Workspace links use file: rather than npm workspaces, so install
+        # each package/app explicitly. Order matters: domain → consumers.
+        run: |
+          for pkg in packages/domain packages/cash-engine packages/ai packages/db packages/policy apps/workers apps/api apps/web; do
+            echo "==> installing $pkg"
+            npm install --prefix "$pkg" --no-audit --no-fund
+          done
+
+      - name: Run verify:full
+        run: npm run verify:full
+
+      - name: Tear down compose
+        if: always()
+        run: npm run verify:full:down || true
+
+      - name: Show docker logs on failure
+        if: failure()
+        run: |
+          echo "::group::postgres logs"
+          docker compose logs postgres || true
+          echo "::endgroup::"

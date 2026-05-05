@@ -52,27 +52,55 @@ describeWithDb("Outbox Dispatcher", () => {
   async function seedOutboxEvent(overrides: Partial<{
     status: string;
     attempts: number;
+    /**
+     * If provided, sets available_at to this exact JS Date. If omitted,
+     * the row is inserted with `available_at = now() - interval '1 second'`
+     * so it's reliably claimable on the next call regardless of any
+     * host/container clock skew (Docker on macOS shows ~ms drift between
+     * the host JS clock and the container PG clock, which silently
+     * causes claimBatch's `available_at <= now()` to filter the row out).
+     */
     availableAt: Date;
     idempotencyKey: string;
   }> = {}) {
     const key = overrides.idempotencyKey ?? `test:${Date.now()}:${Math.random()}`;
-    await pool.query(`
-      INSERT INTO outbox_events (
-        company_id, event_type, aggregate_type, aggregate_id,
-        payload_json, headers_json, idempotency_key, status,
-        attempts, available_at
-      ) VALUES (
-        $1, 'test.event', 'test', gen_random_uuid(),
-        '{"test": true}'::jsonb, '{}'::jsonb, $2,
-        $3, $4, $5
-      )
-    `, [
-      testCompanyId,
-      key,
-      overrides.status ?? "pending",
-      overrides.attempts ?? 0,
-      overrides.availableAt ?? new Date()
-    ]);
+    if (overrides.availableAt !== undefined) {
+      await pool.query(`
+        INSERT INTO outbox_events (
+          company_id, event_type, aggregate_type, aggregate_id,
+          payload_json, headers_json, idempotency_key, status,
+          attempts, available_at
+        ) VALUES (
+          $1, 'test.event', 'test', gen_random_uuid(),
+          '{"test": true}'::jsonb, '{}'::jsonb, $2,
+          $3, $4, $5
+        )
+      `, [
+        testCompanyId,
+        key,
+        overrides.status ?? "pending",
+        overrides.attempts ?? 0,
+        overrides.availableAt
+      ]);
+    } else {
+      // Use PG's own clock for available_at to avoid host/container drift.
+      await pool.query(`
+        INSERT INTO outbox_events (
+          company_id, event_type, aggregate_type, aggregate_id,
+          payload_json, headers_json, idempotency_key, status,
+          attempts, available_at
+        ) VALUES (
+          $1, 'test.event', 'test', gen_random_uuid(),
+          '{"test": true}'::jsonb, '{}'::jsonb, $2,
+          $3, $4, now() - interval '1 second'
+        )
+      `, [
+        testCompanyId,
+        key,
+        overrides.status ?? "pending",
+        overrides.attempts ?? 0,
+      ]);
+    }
     return key;
   }
 

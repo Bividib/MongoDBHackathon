@@ -7,12 +7,44 @@ import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 
 import { repositories } from "@runwayops/db";
-import type { CollectionActionStatus } from "@runwayops/domain";
+import type { CollectionAction, CollectionActionStatus } from "@runwayops/domain";
+import { evaluatePolicy } from "@runwayops/policy";
 
 import { withinTenant } from "../middleware/tenancy.js";
 import { ok, fail, notFound, type CommandResult } from "../lib/errors.js";
 
 const { listActionsByStatus, getCollectionActionById, transitionCollectionActionStatus, appendAuditEvent, enqueueOutbox } = repositories;
+
+/**
+ * Evaluate the deterministic policy engine on the HYPOTHETICAL post-approval
+ * shape of an action, before flipping its status. This catches actions that
+ * could never legally dispatch (missing evidence, payment-initiation kinds,
+ * obligation-safety claims) and refuses the approval at the API layer
+ * rather than letting them sit in "approved" state for the workers to
+ * refuse at dispatch time.
+ *
+ * approval=undefined because the API does not yet maintain a separate
+ * ApprovalRequest entity per state flip. The TTL rule
+ * (rejectIfApprovalExpired) skips when approval is undefined — correct
+ * here since we are creating fresh approval state.
+ */
+function evaluateApproval(
+  action: CollectionAction,
+  approverActorId: string,
+  now: Date,
+) {
+  const hypotheticalApprovedAction: CollectionAction = {
+    ...action,
+    status: "approved",
+    approvedAt: now,
+  };
+  return evaluatePolicy(hypotheticalApprovedAction, {
+    approval: undefined,
+    proposerActorId: action.assignedToUserId ?? "system",
+    approverActorId,
+    now,
+  });
+}
 
 const statusQuerySchema = z.object({
   status: z.string().optional(),
@@ -46,8 +78,31 @@ export async function actionRoutes(app: FastifyInstance): Promise<void> {
       const action = await getCollectionActionById(tx, { companyId: ctx.companyId, id });
       if (!action) return notFound("collection_action", id);
 
-      // Hard refusal: API never initiates payment or sends externally
-      // Approval flips status only; dispatch is workers' job.
+      // Deterministic policy gate (first refusal layer; the workers are
+      // the second). Refuses approval if the action could never legally
+      // dispatch — missing evidence, payment-initiation kind, or
+      // obligation-safety claim text.
+      const now = new Date();
+      const verdict = evaluateApproval(action, ctx.userId, now);
+      if (!verdict.allowed) {
+        // Audit the refusal so the timeline shows why approval was blocked.
+        await appendAuditEvent(tx, {
+          companyId: ctx.companyId,
+          actorType: "user",
+          actorId: ctx.userId,
+          action: "collection_action.approval_denied_by_policy",
+          targetKind: "collection_action",
+          targetId: id,
+          occurredAt: now,
+          summary: `Approval denied by policy rule "${verdict.rule}": ${verdict.reason}`,
+          evidenceRefs: [{ kind: "collection_action", id }],
+        });
+        return fail("POLICY_DENIED", `${verdict.rule}: ${verdict.reason}`, 422);
+      }
+
+      // Hard refusal: API never initiates payment or sends externally.
+      // Approval flips status only; dispatch is workers' job, gated again
+      // by mintGatePass at the connector chokepoint.
       const updated = await transitionCollectionActionStatus(tx, {
         companyId: ctx.companyId,
         actionId: id,
@@ -63,7 +118,7 @@ export async function actionRoutes(app: FastifyInstance): Promise<void> {
         action: "collection_action.approved",
         targetKind: "collection_action",
         targetId: id,
-        occurredAt: new Date(),
+        occurredAt: now,
         summary: `Action ${id} approved by ${ctx.email}${body.note ? `: ${body.note}` : ""}`,
         evidenceRefs: [{ kind: "collection_action", id }],
       });

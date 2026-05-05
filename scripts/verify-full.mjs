@@ -67,12 +67,16 @@ if (args.includes("--down")) {
 run("compose up postgres", "docker", ["compose", "up", "-d", "postgres"]);
 
 console.log("\n==> waiting for postgres healthcheck + init scripts");
-// pg_isready returns 0 during the init-script phase too, so we probe for the
-// actual runwayops_app role created by 01-app-role.sql before trusting the
-// container. The init scripts only run on first boot of the data volume.
+// On first boot the postgres entrypoint runs init scripts in a TEMPORARY
+// postgres instance, then RESTARTS for real. There's a window where the
+// runwayops_app role exists (init scripts ran) but the main server is
+// still starting up ("FATAL: the database system is starting up").
+// We need both: role exists AND a real query succeeds without that
+// transient error. Probe must be repeatable until both are true.
 const startedAt = Date.now();
-const timeoutMs = 60_000;
+const timeoutMs = 90_000;
 let healthy = false;
+let lastErr = "";
 while (Date.now() - startedAt < timeoutMs) {
   const probe = tryRun("docker", [
     "compose",
@@ -84,17 +88,22 @@ while (Date.now() - startedAt < timeoutMs) {
     COMPOSE_SUPER_USER,
     "-d",
     COMPOSE_DB,
+    "-v",
+    "ON_ERROR_STOP=1",
     "-tAc",
-    "SELECT 1 FROM pg_roles WHERE rolname = 'runwayops_app'",
+    "SELECT count(*) FROM pg_roles WHERE rolname = 'runwayops_app'",
   ]);
-  if (probe.status === 0 && probe.stdout?.toString().trim() === "1") {
+  const stderr = probe.stderr?.toString() ?? "";
+  const stdout = probe.stdout?.toString().trim() ?? "";
+  if (probe.status === 0 && stdout === "1") {
     healthy = true;
     break;
   }
+  lastErr = stderr || stdout || `exit ${probe.status}`;
   await new Promise((r) => setTimeout(r, 500));
 }
 if (!healthy) {
-  console.error("postgres did not become ready (with init scripts applied) within 60s");
+  console.error(`postgres did not become ready within 90s. Last probe error:\n${lastErr}`);
   process.exit(1);
 }
 console.log("postgres ready (runwayops_app role provisioned)");
