@@ -56,6 +56,32 @@ legacy/         Original prototype (Next + Mongo + LangGraph + voice
 
 ---
 
+## Conventions
+
+**Package manager: npm only.** Each package and app owns its own
+`package.json` + `package-lock.json`. Cross-package dependencies use
+`file:../<pkg>` — never `workspace:*`, `catalog:`, or `portal:`
+protocols (those are pnpm/Yarn-specific and `npm install` rejects
+them with `EUNSUPPORTEDPROTOCOL`). The verifier's pre-flight check
+fails the build if any pnpm/Yarn artifacts (`pnpm-lock.yaml`,
+`yarn.lock`, `pnpm-workspace.yaml`) appear anywhere in the tree.
+
+**Why this matters:** Round 3's parallel sessions hit "local green,
+CI red" twice because mixed package-manager conventions slipped past
+local installs (which silently reconcile against an existing
+`node_modules/`) but failed on cold CI checkouts. CI now catches this
+in the pre-flight, before any test runs.
+
+**Adding a new dependency to a package:**
+```bash
+cd packages/<pkg>      # or apps/<app>
+npm install --save <dep>
+git add package.json package-lock.json
+```
+Always commit BOTH files together. A lock that's out of sync with its
+package.json is a latent bug — npm will silently reconcile on next
+install, but the lock no longer reflects truth and `npm ci` will fail.
+
 ## Quick start
 
 Requirements:
