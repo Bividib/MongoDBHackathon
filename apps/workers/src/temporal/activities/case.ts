@@ -1,3 +1,7 @@
+import { computeCashForecast as engineComputeCashForecast } from "@runwayops/cash-engine";
+import { repositories } from "@runwayops/db";
+
+import { getActivityContext } from "./context.js";
 import type {
   CaseClosureSummary,
   CaseRecordSummary,
@@ -15,6 +19,10 @@ import type {
   SupplierTimingSummary
 } from "./types.js";
 
+const { withTenant, loadFinancialFactsForForecast: loadFactsRepo } = repositories;
+
+const DEFAULT_CURRENCY = "GBP" as const;
+
 /**
  * Open a critical-obligation case. Gap: packages/db has no case repo.
  * Integrator should add a `CaseRepo` with upsert-by-idempotency-key.
@@ -27,40 +35,99 @@ export async function openCase(input: OpenCaseInput): Promise<CaseRecordSummary>
   };
 }
 
+/**
+ * Run the deterministic engine forecaster against today's facts to
+ * derive the obligation-level shortfall. The engine emits per-obligation
+ * coverage; we surface the obligation under test (or the worst-case row
+ * if it isn't in the obligation set yet) as the case's shortfall.
+ */
 export async function computeShortfall(
-  _input: ComputeShortfallInput
+  input: ComputeShortfallInput
 ): Promise<ShortfallSummary> {
-  // TODO: call cash-engine shortfall computation with loaded facts
-  return {
-    shortfallMinor: 22_500_00,
-    currency: "GBP",
-    riskStatus: "high"
-  };
+  const { db } = getActivityContext();
+
+  return withTenant(db, input.companyId, async (tx) => {
+    const facts = await loadFactsRepo(tx, {
+      companyId: input.companyId,
+      asOfDate: new Date(input.asOfDate),
+      horizonDays: 30,
+      currency: DEFAULT_CURRENCY
+    });
+
+    const forecast = engineComputeCashForecast({
+      companyId: input.companyId,
+      asOfDate: input.asOfDate,
+      horizonDays: 30,
+      cashBalance: facts.cashBalance,
+      invoices: facts.invoices,
+      payments: facts.payments,
+      promises: facts.promises,
+      criticalObligations: facts.criticalObligations,
+      bankTransactions: facts.bankTransactions,
+      policy: facts.policy
+    });
+
+    const targeted = forecast.obligationRisks.find(
+      (risk) => risk.obligationId === input.obligationId
+    );
+    const fallback = forecast.obligationRisks[0];
+    const risk = targeted ?? fallback;
+    const shortfallAmount = risk?.shortfallAmount ?? forecast.shortfallAmount;
+
+    return {
+      shortfallMinor: shortfallAmount ? Number(shortfallAmount.amountMinor) : 0,
+      currency: shortfallAmount?.currency ?? facts.cashBalance.currency,
+      riskStatus: risk?.riskStatus ?? forecast.riskStatus
+    };
+  });
 }
 
 export async function identifyCollectableInvoices(
   input: IdentifyCollectableInvoicesInput
 ): Promise<CollectableInvoicesSummary> {
-  // Gap: needs invoice listing repo with filters
-  return {
-    invoiceIds: [
-      `${input.idempotencyKey}:invoice:1`,
-      `${input.idempotencyKey}:invoice:2`,
-      `${input.idempotencyKey}:invoice:3`
-    ],
-    totalCollectableMinor: 28_000_00,
-    currency: input.currency
-  };
+  const { db } = getActivityContext();
+
+  return withTenant(db, input.companyId, async (tx) => {
+    const open = await repositories.listOpenInvoicesForCompany(tx, {
+      companyId: input.companyId
+    });
+
+    const targetMinor = BigInt(input.shortfallMinor);
+    const sorted = [...open]
+      .filter((invoice) => invoice.amountDue.currency === input.currency)
+      .sort((left, right) => {
+        if (right.amountDue.amountMinor === left.amountDue.amountMinor) return 0;
+        return right.amountDue.amountMinor > left.amountDue.amountMinor ? 1 : -1;
+      });
+
+    const selected: typeof sorted = [];
+    let runningMinor = 0n;
+    for (const invoice of sorted) {
+      if (runningMinor >= targetMinor && selected.length > 0) break;
+      selected.push(invoice);
+      runningMinor += invoice.amountDue.amountMinor;
+    }
+
+    return {
+      invoiceIds: selected.map((inv) => inv.id),
+      totalCollectableMinor: Number(runningMinor),
+      currency: input.currency
+    };
+  });
 }
 
 export async function identifySupplierTimingOptions(
   input: IdentifySupplierTimingInput
 ): Promise<SupplierTimingSummary> {
-  // Gap: needs supplier bill repo with timing analysis
+  // Gap: supplier_bills repo not yet shipped. The case workflow tolerates
+  // an empty supplier list — when supplier-bill timing analysis lands in
+  // a later round this body can be filled in without a workflow signature
+  // change.
+  void input;
   return {
-    supplierIds: [`${input.idempotencyKey}:supplier:1`],
-    totalDeferralMinor: 5_500_00,
-    currency: "GBP"
+    supplierIds: [],
+    totalDeferralMinor: 0,
+    currency: DEFAULT_CURRENCY
   };
 }
 
@@ -71,7 +138,6 @@ export async function identifySupplierTimingOptions(
 export async function executeApprovedActions(
   input: ExecuteApprovedActionsInput
 ): Promise<ExecutionSummary> {
-  // Round 3: no real external action. Returns success.
   return {
     successfulActionIds: input.approvedActionIds,
     failedActionIds: []
@@ -84,7 +150,6 @@ export async function executeApprovedActions(
 export async function revokeExternalAction(
   _input: RevokeExternalActionInput
 ): Promise<{ revoked: boolean }> {
-  // Round 3: no real external action to revoke.
   return { revoked: true };
 }
 

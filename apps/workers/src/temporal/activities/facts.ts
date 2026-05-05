@@ -1,58 +1,44 @@
 import { repositories } from "@runwayops/db";
+import type { CurrencyCode } from "@runwayops/domain";
+
 import type { FinancialFactsSummary, LoadFinancialFactsInput } from "./types.js";
 import { getActivityContext } from "./context.js";
 
-const { withTenant } = repositories;
+const { withTenant, loadFinancialFactsForForecast: loadFactsRepo } = repositories;
+
+const DEFAULT_CURRENCY: CurrencyCode = "GBP";
 
 /**
  * Load the financial facts that feed `cash-engine.computeCashForecast`.
  *
- * Real implementation aggregates invoices, payments, promises,
- * supplier_bills, critical_obligations, customer_payment_stats, and
- * bank_transactions for the given horizon.
- *
- * Gap: packages/db does not yet expose a single aggregate query for all
- * these facts. This implementation queries what's available and stubs
- * the rest. The integrator should add a `loadFinancialFacts` repo function.
+ * Delegates to `repositories.loadFinancialFactsForForecast`, which
+ * aggregates invoices, payments, promises, critical obligations, bank
+ * transactions, the cash balance, and the per-company policy override
+ * inside a single tenant-scoped transaction. Returns the narrow
+ * counts/balance summary the workflow layer branches on; activity callers
+ * that need the full engine-input bundle (compute/rank) call the repo
+ * directly so they can reuse the bundle without re-loading.
  */
 export async function loadFinancialFactsForForecast(
   input: LoadFinancialFactsInput
 ): Promise<FinancialFactsSummary> {
   const { db } = getActivityContext();
 
-  try {
-    const result = await withTenant(db, input.companyId, async (tx) => {
-      // Query promises for count
-      const promises = await repositories.listPendingPromisesForCompany(tx, {
-        companyId: input.companyId
-      });
-
-      // Use the latest forecast for cash balance if available
-      const latestForecast = await repositories.getLatestForecast(tx, {
-        companyId: input.companyId
-      });
-
-      return {
-        asOfDate: input.asOfDate,
-        invoiceCount: 0, // Gap: no invoice listing repo yet
-        pendingPromiseCount: promises.length,
-        obligationCount: 0, // Gap: no obligation listing repo yet
-        cashBalanceMinor: latestForecast
-          ? Number(latestForecast.cashBalance.amountMinor)
-          : 0,
-        currency: latestForecast?.cashBalance.currency ?? "GBP"
-      };
+  return withTenant(db, input.companyId, async (tx) => {
+    const facts = await loadFactsRepo(tx, {
+      companyId: input.companyId,
+      asOfDate: new Date(input.asOfDate),
+      horizonDays: input.horizonDays,
+      currency: DEFAULT_CURRENCY
     });
-    return result;
-  } catch {
-    // Fallback for when DB is unavailable (test mode)
+
     return {
       asOfDate: input.asOfDate,
-      invoiceCount: 12,
-      pendingPromiseCount: 3,
-      obligationCount: 2,
-      cashBalanceMinor: 250_000_00,
-      currency: "GBP"
+      invoiceCount: facts.invoices.length,
+      pendingPromiseCount: facts.promises.length,
+      obligationCount: facts.criticalObligations.length,
+      cashBalanceMinor: Number(facts.cashBalance.amountMinor),
+      currency: facts.cashBalance.currency
     };
-  }
+  });
 }
