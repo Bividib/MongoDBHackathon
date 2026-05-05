@@ -18,8 +18,17 @@ const steps = [
   ["db typecheck", "npm", ["run", "typecheck", "--prefix", resolve(rootDir, "packages/db")]],
   ["db build", "npm", ["run", "build", "--prefix", resolve(rootDir, "packages/db")]],
   ["db tests", "npm", ["test", "--prefix", resolve(rootDir, "packages/db")]],
+  ["policy typecheck", "npm", ["run", "typecheck", "--prefix", resolve(rootDir, "packages/policy")]],
+  ["policy build", "npm", ["run", "build", "--prefix", resolve(rootDir, "packages/policy")]],
+  ["policy tests", "npm", ["test", "--prefix", resolve(rootDir, "packages/policy")]],
   ["workers typecheck", "npm", ["run", "typecheck", "--prefix", resolve(rootDir, "apps/workers")]],
-  ["workers tests", "npm", ["test", "--prefix", resolve(rootDir, "apps/workers")]]
+  ["workers tests", "npm", ["test", "--prefix", resolve(rootDir, "apps/workers")]],
+  ["api typecheck", "npm", ["run", "typecheck", "--prefix", resolve(rootDir, "apps/api")]],
+  ["api build", "npm", ["run", "build", "--prefix", resolve(rootDir, "apps/api")]],
+  ["api tests", "npm", ["test", "--prefix", resolve(rootDir, "apps/api")]],
+  ["web typecheck", "npm", ["run", "typecheck", "--prefix", resolve(rootDir, "apps/web")]],
+  ["web build", "npm", ["run", "build", "--prefix", resolve(rootDir, "apps/web")]],
+  ["web tests", "npm", ["test", "--prefix", resolve(rootDir, "apps/web")]]
 ];
 
 for (const [label, command, args] of steps) {

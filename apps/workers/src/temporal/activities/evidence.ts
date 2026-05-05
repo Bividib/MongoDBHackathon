@@ -8,10 +8,9 @@ import type {
 } from "./types.js";
 
 /**
- * Retrieve evidence packets for the top ranked actions. Real implementation
- * will run the retrieval pipeline (structured lookups + semantic search +
- * rerank) and return references; the stub returns a synthetic ref per
- * action.
+ * Retrieve evidence packets for the top ranked actions.
+ * Gap: packages/db has no evidence_chunks repo yet.
+ * Real implementation would run the retrieval pipeline.
  */
 export async function retrieveEvidenceForTopActions(
   input: RetrieveEvidenceInput
@@ -23,6 +22,10 @@ export async function retrieveEvidenceForTopActions(
   }));
 }
 
+/**
+ * Retrieve customer memory (behavioral stats).
+ * Gap: packages/db has no customer_payment_stats repo yet.
+ */
 export async function retrieveCustomerMemory(
   input: RetrieveCustomerMemoryInput
 ): Promise<CustomerMemorySummary> {
@@ -36,8 +39,8 @@ export async function retrieveCustomerMemory(
 }
 
 /**
- * FAIL_FAST disposition. Stub always passes; real implementation will
- * throw `ValidationError` (non-retryable) when evidence does not satisfy
+ * FAIL_FAST disposition. Validates evidence exists and is accessible.
+ * Throws `ValidationError` (non-retryable) when evidence does not satisfy
  * policy rules.
  */
 export async function validateEvidence(

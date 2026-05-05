@@ -1,0 +1,30 @@
+{
+  "name": "@runwayops/api",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "RunwayOps HTTP API — tenant-scoped, approval-gated, audit-logged.",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "dev": "tsx watch src/server.ts",
+    "start": "node dist/server.js",
+    "test": "vitest run --config vitest.config.ts",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@runwayops/db": "file:../../packages/db",
+    "@runwayops/domain": "file:../../packages/domain",
+    "drizzle-orm": "^0.44.2",
+    "fastify": "^5.3.3",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.17",
+    "typescript": "^5.8.3",
+    "vitest": "^2.1.9"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}

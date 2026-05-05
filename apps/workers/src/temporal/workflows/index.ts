@@ -7,4 +7,5 @@
 export { CriticalObligationCaseWorkflow } from "./critical-obligation-case.js";
 export { CustomerReplyWorkflow } from "./customer-reply.js";
 export { DailyCashActionWorkflow } from "./daily-cash-action.js";
+export { IdempotencyCleanupWorkflow } from "./idempotency-cleanup.js";
 export { PromiseMonitoringWorkflow } from "./promise-monitoring.js";

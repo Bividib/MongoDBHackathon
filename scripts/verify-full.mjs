@@ -124,7 +124,14 @@ run(
     "ON_ERROR_STOP=1",
     "-c",
     [
+      // Wipe public AND drizzle schema so re-runs get a clean migration
+      // pass. The drizzle journal lives in its own schema and would
+      // otherwise survive the public-schema reset, causing drizzle's
+      // migrator to skip every migration on the next run while public
+      // remains empty (which is exactly the bug verify-full hit before
+      // this fix).
       "DROP SCHEMA IF EXISTS public CASCADE",
+      "DROP SCHEMA IF EXISTS drizzle CASCADE",
       "CREATE SCHEMA public",
       "GRANT CREATE ON DATABASE runwayops_test TO runwayops_app",
       "GRANT USAGE, CREATE ON SCHEMA public TO runwayops_app",

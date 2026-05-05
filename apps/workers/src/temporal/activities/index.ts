@@ -5,8 +5,10 @@
 // from this module via `proxyActivities<typeof activities>`.
 
 export * from "./types.js";
+export { initActivityContext, getActivityContext } from "./context.js";
 
 export { getNow } from "./system.js";
+export { cleanupExpiredIdempotencyKeys } from "./cleanup.js";
 export { loadCompanyPolicy } from "./policy.js";
 export { loadFinancialFactsForForecast } from "./facts.js";
 export {

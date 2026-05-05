@@ -19,11 +19,13 @@
     "@temporalio/client": "^1.17.0",
     "@temporalio/common": "^1.17.0",
     "@temporalio/worker": "^1.17.0",
-    "@temporalio/workflow": "^1.17.0"
+    "@temporalio/workflow": "^1.17.0",
+    "pg": "^8.20.0"
   },
   "devDependencies": {
     "@temporalio/testing": "^1.17.0",
     "@types/node": "^22.15.17",
+    "@types/pg": "^8.20.0",
     "typescript": "^5.8.3",
     "vitest": "^2.1.4"
   },

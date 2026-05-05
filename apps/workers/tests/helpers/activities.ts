@@ -7,6 +7,13 @@ import type * as activities from "../../src/temporal/activities/index.js";
  * from any future real wiring inside the activity bodies.
  */
 export const mockActivities: typeof activities = {
+  // Context management — no-ops in test
+  initActivityContext: (() => ({ db: null, ai: null })) as unknown as typeof activities.initActivityContext,
+  getActivityContext: (() => ({ db: null, ai: null })) as unknown as typeof activities.getActivityContext,
+
+  // Cleanup
+  cleanupExpiredIdempotencyKeys: async () => ({ deletedCount: 0 }),
+
   getNow: async () => ({ nowIso: "2026-05-04T09:00:00.000Z" }),
 
   loadCompanyPolicy: async (input) => ({

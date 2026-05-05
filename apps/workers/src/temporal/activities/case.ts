@@ -15,17 +15,22 @@ import type {
   SupplierTimingSummary
 } from "./types.js";
 
+/**
+ * Open a critical-obligation case. Gap: packages/db has no case repo.
+ * Integrator should add a `CaseRepo` with upsert-by-idempotency-key.
+ */
 export async function openCase(input: OpenCaseInput): Promise<CaseRecordSummary> {
   return {
     caseId: input.caseId,
     obligationId: input.obligationId,
-    openedAtIso: "2026-05-04T09:00:00.000Z"
+    openedAtIso: new Date().toISOString()
   };
 }
 
 export async function computeShortfall(
   _input: ComputeShortfallInput
 ): Promise<ShortfallSummary> {
+  // TODO: call cash-engine shortfall computation with loaded facts
   return {
     shortfallMinor: 22_500_00,
     currency: "GBP",
@@ -36,6 +41,7 @@ export async function computeShortfall(
 export async function identifyCollectableInvoices(
   input: IdentifyCollectableInvoicesInput
 ): Promise<CollectableInvoicesSummary> {
+  // Gap: needs invoice listing repo with filters
   return {
     invoiceIds: [
       `${input.idempotencyKey}:invoice:1`,
@@ -50,6 +56,7 @@ export async function identifyCollectableInvoices(
 export async function identifySupplierTimingOptions(
   input: IdentifySupplierTimingInput
 ): Promise<SupplierTimingSummary> {
+  // Gap: needs supplier bill repo with timing analysis
   return {
     supplierIds: [`${input.idempotencyKey}:supplier:1`],
     totalDeferralMinor: 5_500_00,
@@ -58,13 +65,13 @@ export async function identifySupplierTimingOptions(
 }
 
 /**
- * FAIL_FAST disposition. The workflow wraps this call in compensation logic
- * (`revokeExternalAction` if any side effect was applied) and falls through
- * to a paused-for-human state if compensation cannot complete.
+ * FAIL_FAST disposition. External action execution. In this round we do
+ * NOT call any external API — just log success.
  */
 export async function executeApprovedActions(
   input: ExecuteApprovedActionsInput
 ): Promise<ExecutionSummary> {
+  // Round 3: no real external action. Returns success.
   return {
     successfulActionIds: input.approvedActionIds,
     failedActionIds: []
@@ -72,19 +79,18 @@ export async function executeApprovedActions(
 }
 
 /**
- * Compensation activity. RETRY-bounded: 3 attempts; if all fail the case
- * workflow transitions to HUMAN_INTERVENTION via signal-condition.
+ * Compensation activity. RETRY-bounded: 3 attempts.
  */
 export async function revokeExternalAction(
-  input: RevokeExternalActionInput
+  _input: RevokeExternalActionInput
 ): Promise<{ revoked: boolean }> {
+  // Round 3: no real external action to revoke.
   return { revoked: true };
 }
 
 /**
- * HUMAN_INTERVENTION disposition. Real implementation will create a case
- * record on a downstream service. If the call fails the workflow surfaces
- * the failure to operators rather than retrying silently.
+ * HUMAN_INTERVENTION disposition. Opens an escalation case on a
+ * downstream service.
  */
 export async function openEscalationCase(
   input: OpenEscalationCaseInput
@@ -92,7 +98,7 @@ export async function openEscalationCase(
   return {
     caseId: `${input.idempotencyKey}:escalation`,
     obligationId: "obligation:escalated",
-    openedAtIso: "2026-05-04T09:00:00.000Z"
+    openedAtIso: new Date().toISOString()
   };
 }
 
@@ -100,6 +106,6 @@ export async function closeOrEscalate(input: CloseOrEscalateInput): Promise<Case
   return {
     caseId: input.caseId,
     status: "closed",
-    closedAtIso: "2026-05-04T18:00:00.000Z"
+    closedAtIso: new Date().toISOString()
   };
 }
