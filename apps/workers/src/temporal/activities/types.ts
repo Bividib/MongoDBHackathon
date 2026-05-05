@@ -405,3 +405,33 @@ export interface DomainEventEmissionSummary {
   type: string;
   occurredAtIso: string;
 }
+
+// ── integration sync ──────────────────────────────────────────────────────
+
+export interface ListConnectedProvidersInput {
+  companyId: string;
+}
+
+export interface ConnectedProviderSummary {
+  connectionId: string;
+  provider: string;
+  /**
+   * Free-form mode the resolver uses to pick an adapter. "simulated"
+   * runs `XeroSimulatedAdapter` against bundled fixtures; "real" runs
+   * the OAuth-backed adapter (only valid when refresh tokens exist).
+   * Defaults to "simulated" until OAuth UI lands.
+   */
+  adapterMode: "simulated" | "real";
+}
+
+export interface RunProviderSyncInput extends ActivityCommonInput {
+  connectionId: string;
+}
+
+export interface ProviderSyncSummary {
+  connectionId: string;
+  syncJobId: string;
+  status: "completed" | "failed";
+  recordsProcessed: number;
+  errorMessage?: string;
+}

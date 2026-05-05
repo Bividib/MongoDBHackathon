@@ -58,3 +58,7 @@ export {
   writeAuditEvents,
   writeMemoryAndAudit
 } from "./audit.js";
+export {
+  listConnectedProviders,
+  runProviderSync
+} from "./sync.js";

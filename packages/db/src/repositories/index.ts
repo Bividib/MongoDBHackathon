@@ -128,3 +128,16 @@ export {
   getIntegrationToken,
   getIntegrationTokenPair,
 } from "./integration-tokens.js";
+
+export {
+  type IntegrationConnectionRow,
+  type SyncJobRow,
+  type BeginSyncJobInput,
+  type CompleteSyncJobInput,
+  type FailSyncJobInput,
+  listActiveConnectionsForCompany,
+  getIntegrationConnectionById,
+  beginSyncJob,
+  completeSyncJob,
+  failSyncJob,
+} from "./integrations.js";

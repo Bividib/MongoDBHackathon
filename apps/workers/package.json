@@ -15,6 +15,7 @@
     "@runwayops/cash-engine": "file:../../packages/cash-engine",
     "@runwayops/db": "file:../../packages/db",
     "@runwayops/domain": "file:../../packages/domain",
+    "@runwayops/integrations": "file:../../packages/integrations",
     "@temporalio/activity": "^1.17.0",
     "@temporalio/client": "^1.17.0",
     "@temporalio/common": "^1.17.0",

@@ -289,5 +289,16 @@ export const mockActivities: typeof activities = {
     eventId: `${input.idempotencyKey}:event`,
     type: input.type,
     occurredAtIso: "2026-05-04T09:00:00.000Z"
+  }),
+
+  listConnectedProviders: async (_input) => [
+    { connectionId: "conn-xero-1", provider: "xero", adapterMode: "simulated" }
+  ],
+
+  runProviderSync: async (input) => ({
+    connectionId: input.connectionId,
+    syncJobId: `${input.idempotencyKey}:syncjob`,
+    status: "completed",
+    recordsProcessed: 7
   })
 };
