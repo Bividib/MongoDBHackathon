@@ -1,0 +1,20 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1777852800000,
+      "tag": "0000_runwayops_initial_schema",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1777939200000,
+      "tag": "0001_runwayops_rls_and_indexes",
+      "breakpoints": true
+    }
+  ]
+}

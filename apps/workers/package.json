@@ -1,0 +1,33 @@
+{
+  "name": "@runwayops/workers",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Temporal workflows and activities for RunwayOps cash-aware receivables operations.",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run --config vitest.config.ts",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@runwayops/ai": "file:../../packages/ai",
+    "@runwayops/cash-engine": "file:../../packages/cash-engine",
+    "@runwayops/db": "file:../../packages/db",
+    "@runwayops/domain": "file:../../packages/domain",
+    "@temporalio/activity": "^1.17.0",
+    "@temporalio/client": "^1.17.0",
+    "@temporalio/common": "^1.17.0",
+    "@temporalio/worker": "^1.17.0",
+    "@temporalio/workflow": "^1.17.0"
+  },
+  "devDependencies": {
+    "@temporalio/testing": "^1.17.0",
+    "@types/node": "^22.15.17",
+    "typescript": "^5.8.3",
+    "vitest": "^2.1.4"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}
