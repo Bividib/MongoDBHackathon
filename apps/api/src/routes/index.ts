@@ -10,6 +10,7 @@ import { forecastRoutes } from "../handlers/forecast.js";
 import { actionRoutes } from "../handlers/actions.js";
 import { promiseRoutes } from "../handlers/promises.js";
 import { auditRoutes } from "../handlers/audit.js";
+import { v1Routes } from "../handlers/v1.js";
 
 export async function registerRoutes(app: FastifyInstance): Promise<void> {
   // Public endpoints — NOT tenant-scoped
@@ -32,5 +33,6 @@ export async function registerRoutes(app: FastifyInstance): Promise<void> {
     await tenantApp.register(actionRoutes);
     await tenantApp.register(promiseRoutes);
     await tenantApp.register(auditRoutes);
+    await tenantApp.register(v1Routes);
   });
 }

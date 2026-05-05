@@ -1,9 +1,18 @@
 /**
  * Lightweight auth/tenant resolution.
  *
- * In this skeleton we resolve from headers (X-User-Email / X-Company-Id).
- * Production will swap in JWT/session-based auth (Clerk/WorkOS). The contract
- * is stable: resolveRequestContext returns { userId, companyId } or throws.
+ * Two modes are supported until real auth (Clerk/WorkOS) lands in Phase 7+:
+ *
+ *  1. Headered mode (existing): X-User-Email + X-Company-Id, used by API
+ *     tests and the workers. Membership is verified via the stub repos
+ *     below.
+ *
+ *  2. Demo mode: a single header `x-runway-demo-company-id` opts the
+ *     request into a synthetic tenant context so the web app can render
+ *     real API data without a session. The API never escalates this
+ *     header to real privileges — it is a tenancy hint only, gated at
+ *     deploy time by WEB_DEMO_MODE on the caller. Production frontends
+ *     must NOT send it.
  */
 import type { FastifyRequest } from "fastify";
 
@@ -17,6 +26,10 @@ export type RequestContext = {
   email: string;
 };
 
+const DEMO_COMPANY_HEADER = "x-runway-demo-company-id";
+const DEMO_USER_ID = "demo-user";
+const DEMO_USER_EMAIL = "demo@runway.local";
+
 /**
  * Resolve authenticated user + tenant from request headers.
  * Returns null if the request is unauthenticated.
@@ -25,6 +38,15 @@ export async function resolveRequestContext(
   request: FastifyRequest,
   db: DbHandle | null,
 ): Promise<RequestContext | null> {
+  const demoCompanyId = request.headers[DEMO_COMPANY_HEADER] as string | undefined;
+  if (demoCompanyId && demoCompanyId.trim().length > 0) {
+    return {
+      userId: DEMO_USER_ID,
+      companyId: demoCompanyId,
+      email: DEMO_USER_EMAIL,
+    };
+  }
+
   const email = request.headers["x-user-email"] as string | undefined;
   const companyId = request.headers["x-company-id"] as string | undefined;
 

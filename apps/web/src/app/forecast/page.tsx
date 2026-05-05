@@ -1,12 +1,15 @@
-import { getForecastScreenData } from "@/fixtures/engine";
 import { ForecastView } from "./forecast-view";
+import { getApiClient } from "@/lib/api";
+import { adaptForecastScreen } from "@/lib/adapters";
+import { toDisplayMoney } from "@/lib/format";
+import type { ForecastScreenData } from "@/fixtures/types";
+
+export const dynamic = "force-dynamic";
 
 /**
  * Cash Confidence Forecast screen.
  *
  * Shows near-term cash with confidence bands and obligation coverage.
- * The operator sees today's actual cash, expected inflows weighted by
- * confidence, expected outflows, and risk status.
  *
  * Hard refusals:
  *  - No claim that an obligation is "safe", "covered", or "fine" —
@@ -14,9 +17,8 @@ import { ForecastView } from "./forecast-view";
  *  - The operator cannot edit the forecast — cash arithmetic is
  *    deterministic in the cash engine.
  */
-export default function ForecastPage() {
-  const data = getForecastScreenData();
-
+export default async function ForecastPage() {
+  const data = await loadForecast();
   return (
     <div>
       <div className="mb-6">
@@ -29,4 +31,41 @@ export default function ForecastPage() {
       <ForecastView data={data} />
     </div>
   );
+}
+
+async function loadForecast(): Promise<ForecastScreenData> {
+  const api = getApiClient();
+  try {
+    const forecast = await api.getLatestForecast();
+    if (forecast) return adaptForecastScreen(forecast);
+  } catch {
+    // fall through to empty state
+  }
+  return emptyForecastScreen();
+}
+
+function emptyForecastScreen(): ForecastScreenData {
+  const zero = toDisplayMoney({ amountMinor: "0", currency: "GBP" });
+  const nowIso = new Date().toISOString();
+  return {
+    forecast: {
+      forecastId: "no-forecast",
+      generatedAt: nowIso,
+      asOfDate: nowIso,
+      horizonDays: 30,
+      cashBalance: zero,
+      riskStatus: "unknown",
+      scenarios: [],
+      confidenceBands: [],
+      obligationRisks: [],
+      expectedInflows: [],
+      expectedOutflows: [],
+      evidenceRefs: [],
+    },
+    horizonOptions: [7, 14, 30, 90],
+    selectedHorizonDays: 30,
+    selectedScenarioName: "base",
+    forecastVersions: [],
+    integrationHealth: { unhealthyConnectors: [] },
+  };
 }

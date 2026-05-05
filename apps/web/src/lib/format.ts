@@ -11,20 +11,29 @@ export type DisplayMoney = {
 };
 
 /**
- * Convert a domain Money (bigint amountMinor) to a display-safe shape.
+ * Convert a domain Money (bigint amountMinor) or its wire-serialized
+ * counterpart (string amountMinor) to a display-safe shape.
+ *
+ * Accepting both shapes lets the same helper run in two places:
+ *  - In-process callers that hold the bigint domain Money (tests).
+ *  - Server Components that receive Money over HTTP, where the API's
+ *    bigint preSerialization hook has already turned amountMinor into a
+ *    decimal string.
  */
 export function toDisplayMoney(m: {
-  amountMinor: bigint;
+  amountMinor: bigint | string;
   currency: string;
 }): DisplayMoney {
-  const sign = m.amountMinor < 0n ? "-" : "";
-  const abs = m.amountMinor < 0n ? -m.amountMinor : m.amountMinor;
+  const amountMinor =
+    typeof m.amountMinor === "bigint" ? m.amountMinor : BigInt(m.amountMinor);
+  const sign = amountMinor < 0n ? "-" : "";
+  const abs = amountMinor < 0n ? -amountMinor : amountMinor;
   const major = abs / 100n;
   const minor = abs % 100n;
   const sym = currencySymbol(m.currency);
   const majorStr = major.toLocaleString("en-GB");
   const formatted = `${sign}${sym}${majorStr}.${minor.toString().padStart(2, "0")}`;
-  return { formatted, rawMinor: m.amountMinor.toString(), currency: m.currency };
+  return { formatted, rawMinor: amountMinor.toString(), currency: m.currency };
 }
 
 function currencySymbol(code: string): string {

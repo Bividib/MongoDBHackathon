@@ -1,5 +1,9 @@
-import { getApprovalInboxData } from "@/fixtures/engine";
 import { ApprovalInbox } from "./approval-inbox";
+import { getApiClient } from "@/lib/api";
+import { adaptApprovalInbox } from "@/lib/adapters";
+import type { ApprovalInboxData } from "@/fixtures/types";
+
+export const dynamic = "force-dynamic";
 
 /**
  * Approval Inbox — the single queue for all external actions
@@ -11,9 +15,8 @@ import { ApprovalInbox } from "./approval-inbox";
  *  - Policy "block" warnings disable the Approve button
  *  - No send without approval
  */
-export default function ApprovalsPage() {
-  const data = getApprovalInboxData();
-
+export default async function ApprovalsPage() {
+  const data = await loadApprovalInbox();
   return (
     <div>
       <div className="mb-6">
@@ -26,4 +29,14 @@ export default function ApprovalsPage() {
       <ApprovalInbox data={data} />
     </div>
   );
+}
+
+async function loadApprovalInbox(): Promise<ApprovalInboxData> {
+  const api = getApiClient();
+  try {
+    const approvals = await api.listPendingApprovals();
+    return adaptApprovalInbox(approvals);
+  } catch {
+    return adaptApprovalInbox([]);
+  }
 }
