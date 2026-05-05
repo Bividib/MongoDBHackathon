@@ -3,7 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "verify": "node scripts/verify-packages.mjs"
+    "verify": "node scripts/verify-packages.mjs",
+    "verify:full": "node scripts/verify-full.mjs",
+    "verify:full:down": "node scripts/verify-full.mjs --down"
   },
   "dependencies": {
     "zod": "latest"

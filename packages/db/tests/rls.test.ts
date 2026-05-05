@@ -24,16 +24,16 @@ describeReal("RLS tenant isolation (real Postgres)", () => {
     if (!real) throw new Error("connectRealDb returned null with TEST_DATABASE_URL set");
     ctx = real;
 
-    // We need to act as a privileged role to seed across tenants. Migrations
-    // run as the connection's default role, which is typically a superuser
-    // and therefore bypasses RLS for setup. If the test DB is a non-super
-    // user with only INSERT, the seed below will fail with an RLS violation
-    // and the tester should grant `BYPASSRLS` or rerun as superuser.
-    const [a] = await ctx.db
+    // Cross-tenant seed runs through the admin pool (BYPASSRLS) because the
+    // app role legitimately cannot bootstrap a tenant under the
+    // companies_tenant_isolation policy. Everything actually under test
+    // below runs through ctx.db (the app pool) inside withTenant so RLS
+    // is enforced exactly as it would be in production.
+    const [a] = await ctx.adminDb
       .insert(companies)
       .values({ displayName: "Alpha", slug: `alpha-${Date.now()}` })
       .returning();
-    const [b] = await ctx.db
+    const [b] = await ctx.adminDb
       .insert(companies)
       .values({ displayName: "Beta", slug: `beta-${Date.now()}` })
       .returning();
@@ -41,18 +41,18 @@ describeReal("RLS tenant isolation (real Postgres)", () => {
     companyA = a!.id;
     companyB = b!.id;
 
-    const [cA] = await ctx.db
+    const [cA] = await ctx.adminDb
       .insert(customers)
       .values({ companyId: companyA, displayName: "Customer A" })
       .returning();
-    const [cB] = await ctx.db
+    const [cB] = await ctx.adminDb
       .insert(customers)
       .values({ companyId: companyB, displayName: "Customer B" })
       .returning();
     customerA = cA!.id;
     customerB = cB!.id;
 
-    await ctx.db.insert(invoices).values([
+    await ctx.adminDb.insert(invoices).values([
       {
         companyId: companyA,
         customerId: customerA,

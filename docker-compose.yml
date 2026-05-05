@@ -1,0 +1,50 @@
+# Local Postgres for `npm run verify:full` and developer use.
+#
+# WHY this exists:
+#   The 8 RLS / repo-real tests under packages/db are gated on
+#   `TEST_DATABASE_URL` because they need a real Postgres (pg-mem
+#   diverges on `ON CONFLICT … RETURNING` and on transaction semantics
+#   through the drizzle adapter). Without this compose file there is
+#   nowhere for them to run, so they ship green by default while
+#   masking real isolation bugs.
+#
+# WHY a separate non-superuser role:
+#   Postgres SUPERUSER (and BYPASSRLS) silently bypass row-level
+#   security even when the table has FORCE ROW LEVEL SECURITY. If the
+#   tests connect as the postgres user, RLS bugs would not be caught.
+#   `scripts/postgres-init/01-app-role.sql` provisions a NOSUPERUSER
+#   role; `scripts/verify-full.mjs` points TEST_DATABASE_URL at that
+#   role for the test run.
+#
+# Usage:
+#   npm run verify:full        — boots compose, applies migrations,
+#                                runs the entire verifier with the
+#                                real-PG path open, leaves compose up.
+#   npm run verify:full:down   — tears down the compose stack.
+#
+# This file is dev-only. Production Postgres is provisioned by the
+# environment (Fly/Render/Supabase/RDS/etc.) per packages/db/docs/rls.md.
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: runwayops_postgres_dev
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres_dev_only
+      POSTGRES_DB: runwayops_test
+    ports:
+      - "54329:5432"
+    volumes:
+      - runwayops_postgres_data:/var/lib/postgresql/data
+      - ./scripts/postgres-init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d runwayops_test"]
+      interval: 1s
+      timeout: 3s
+      retries: 30
+
+volumes:
+  runwayops_postgres_data:
+    name: runwayops_postgres_data
