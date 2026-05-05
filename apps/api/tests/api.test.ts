@@ -69,16 +69,27 @@ describe("Tenancy middleware", () => {
 // ---------------------------------------------------------------------------
 
 describe("Demo-mode tenancy header", () => {
-  it("accepts x-runway-demo-company-id alone (no x-user-email needed)", async () => {
+  it("accepts x-runway-demo-company-id (UUID) alone (no x-user-email needed)", async () => {
     // Without DATABASE_URL the handler will fail when it tries to query
     // — but tenancy resolves first. We're asserting the request passes
     // the 401 gate (status !== 401), not that the query succeeds.
     const res = await app.inject({
       method: "GET",
       url: "/v1/forecasts/latest",
-      headers: { "x-runway-demo-company-id": "comp-meridian-001" },
+      headers: {
+        "x-runway-demo-company-id": "10000000-0000-4000-8000-000000000001",
+      },
     });
     expect(res.statusCode).not.toBe(401);
+  });
+
+  it("rejects non-UUID demo header with 401 (RLS would silently zero rows otherwise)", async () => {
+    const res = await app.inject({
+      method: "GET",
+      url: "/v1/forecasts/latest",
+      headers: { "x-runway-demo-company-id": "comp-meridian-001" },
+    });
+    expect(res.statusCode).toBe(401);
   });
 
   it("rejects /v1/* requests without any tenancy header (401)", async () => {

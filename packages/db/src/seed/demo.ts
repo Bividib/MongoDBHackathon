@@ -33,6 +33,7 @@ const ids = {
   owner: "10000000-0000-4000-8000-000000000002",
   membership: "10000000-0000-4000-8000-000000000003",
   policy: "10000000-0000-4000-8000-000000000004",
+  cashEnginePolicy: "10000000-0000-4000-8000-00000000000a",
   xeroConnection: "10000000-0000-4000-8000-000000000005",
   bankConnection: "10000000-0000-4000-8000-000000000006",
   xeroSyncJob: "10000000-0000-4000-8000-000000000007",
@@ -124,18 +125,44 @@ async function main() {
         joinedAt: now,
       }).onConflictDoNothing({ target: memberships.id });
 
-      await tx.insert(companyPolicies).values({
-        id: ids.policy,
-        companyId: ids.company,
-        policyKey: "collections.approval",
-        policyJson: {
-          founderApprovalThresholdMinor: 2_000_000,
-          blockedPhrases: ["legal action", "final warning"],
+      await tx.insert(companyPolicies).values([
+        {
+          id: ids.policy,
+          companyId: ids.company,
+          policyKey: "collections.approval",
+          policyJson: {
+            founderApprovalThresholdMinor: 2_000_000,
+            blockedPhrases: ["legal action", "final warning"],
+          },
+          status: "active",
+          effectiveFrom: now,
+          requiresFounderApproval: true,
         },
-        status: "active",
-        effectiveFrom: now,
-        requiresFounderApproval: true,
-      }).onConflictDoNothing({ target: companyPolicies.id });
+        // Cash-engine overrides. Whitelisted by
+        // `getCashEnginePolicyForCompany` — only known fields apply,
+        // unknown keys here are ignored. `materialShortfallAmount` is
+        // stored split (minor + currency) to avoid bigint-in-jsonb
+        // round-trip issues.
+        {
+          id: ids.cashEnginePolicy,
+          companyId: ids.company,
+          policyKey: "cash_engine",
+          policyJson: {
+            highConfidenceThreshold: 0.8,
+            mediumConfidenceThreshold: 0.5,
+            criticalObligationWindowDays: 7,
+            watchObligationWindowDays: 14,
+            immediateInterventionWindowDays: 2,
+            defaultInvoiceConfidence: 0.45,
+            staleInvoiceConfidence: 0.25,
+            materialShortfallAmountMinor: "100000",
+            materialShortfallCurrency: "GBP",
+          },
+          status: "active",
+          effectiveFrom: now,
+          requiresFounderApproval: false,
+        },
+      ]).onConflictDoNothing({ target: companyPolicies.id });
 
       await tx.insert(integrationConnections).values([
         {

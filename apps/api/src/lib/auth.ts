@@ -30,16 +30,26 @@ const DEMO_COMPANY_HEADER = "x-runway-demo-company-id";
 const DEMO_USER_ID = "demo-user";
 const DEMO_USER_EMAIL = "demo@runway.local";
 
+const UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 /**
  * Resolve authenticated user + tenant from request headers.
  * Returns null if the request is unauthenticated.
+ *
+ * The demo header MUST be a UUID. RLS policies cast
+ * `app.current_company_id` to `uuid`, so a non-UUID would either error
+ * inside the read query or (on some Postgres versions) silently filter
+ * everything out — both are confusing for the operator. Reject up front.
  */
 export async function resolveRequestContext(
   request: FastifyRequest,
   db: DbHandle | null,
 ): Promise<RequestContext | null> {
-  const demoCompanyId = request.headers[DEMO_COMPANY_HEADER] as string | undefined;
-  if (demoCompanyId && demoCompanyId.trim().length > 0) {
+  const demoCompanyIdRaw = request.headers[DEMO_COMPANY_HEADER] as string | undefined;
+  if (demoCompanyIdRaw && demoCompanyIdRaw.trim().length > 0) {
+    const demoCompanyId = demoCompanyIdRaw.trim();
+    if (!UUID_RE.test(demoCompanyId)) return null;
     return {
       userId: DEMO_USER_ID,
       companyId: demoCompanyId,

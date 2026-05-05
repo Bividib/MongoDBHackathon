@@ -98,7 +98,7 @@ describe("ApiClient demo header injection", () => {
     const client = new ApiClient({
       baseUrl: "http://api.test",
       demoMode: true,
-      demoCompanyId: "comp-meridian-001",
+      demoCompanyId: "10000000-0000-4000-8000-000000000001",
       fetchImpl: fetchImpl as unknown as typeof fetch,
     });
     await client.getLatestForecast();
@@ -107,7 +107,9 @@ describe("ApiClient demo header injection", () => {
     const call = fetchImpl.mock.calls[0] as unknown as [string, RequestInit];
     const init = call[1];
     const headers = init.headers as Record<string, string>;
-    expect(headers["x-runway-demo-company-id"]).toBe("comp-meridian-001");
+    expect(headers["x-runway-demo-company-id"]).toBe(
+      "10000000-0000-4000-8000-000000000001",
+    );
   });
 
   it("omits the demo header when demo mode is off", async () => {

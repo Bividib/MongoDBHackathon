@@ -6,9 +6,11 @@ collections actions to keep critical obligations covered, drafts
 human-approved communications, and learns from outcomes.
 
 **Status:** simulated daily action loop end-to-end across foundation
-packages, API, web, workers, and policy engine. 228 tests pass via
-`npm run verify:full` (real Postgres + RLS + dispatcher + e2e workflow
-simulation + API policy gate).
+packages, API, web, workers, and policy engine, plus a Xero-simulated
+integrations adapter and demo-mode header tenancy in the API. 262
+tests pass via `npm run verify:full` (real Postgres + RLS + dispatcher
++ e2e workflow simulation + API policy gate + integrations real-PG
+sync + workers cash-engine wiring + web→API demo-header).
 
 Source of truth for product + architecture:
 - [`New Spec.md`](./New%20Spec.md) — full product specification
@@ -124,11 +126,12 @@ CI runs `verify:full` on every PR via [.github/workflows/verify.yml](./.github/w
 | `cash-engine` | 13 | Forecast, ranking, matching, money invariants |
 | `ai` | 85 | Mappers, validators, eval suite (≥95% accuracy thresholds), adversarial corpus |
 | `db` | 29 | Repos, source dedup, idempotency, outbox, RLS isolation, forecast bigint round-trip, fact-loader |
+| `integrations` | 16 | Provider mapper, Xero simulated adapter, source-object dedup (real-PG) |
 | `policy` | 24 | All 6 hard-refusal rules, gate brand, ts-expect-error type tests |
-| `workers` | 11 | 4 workflow replay tests, 6 dispatcher tests, 1 e2e simulation |
-| `api` | 24 | Endpoints, tenancy, idempotency, policy gate (4 real-PG integration tests) |
-| `web` | 17 | Wire format, hard-refusal UI invariants |
-| **total** | **235** | zero skips under `verify:full` |
+| `workers` | 13 | 4 workflow replay tests, 6 dispatcher tests, 1 e2e simulation, 2 engine-projection tests |
+| `api` | 27 | Endpoints, tenancy, idempotency, policy gate, demo-mode header (UUID-guarded) |
+| `web` | 23 | Wire format, hard-refusal UI invariants, API client, wire→view-model adapters |
+| **total** | **262** | zero skips under `verify:full` |
 
 ---
 

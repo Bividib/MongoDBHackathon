@@ -19,8 +19,12 @@ import type {
 } from "./api-types";
 
 const DEMO_HEADER = "x-runway-demo-company-id";
+// Default matches `packages/db/src/seed/demo.ts` ids.company. Must be a
+// real UUID — RLS casts `app.current_company_id` to uuid, so any non-UUID
+// value rejects every row in the tenant. Override via env in dev when
+// pointing at a different seed.
 const DEMO_COMPANY_ID =
-  process.env.RUNWAY_DEMO_COMPANY_ID ?? "comp-meridian-001";
+  process.env.RUNWAY_DEMO_COMPANY_ID ?? "10000000-0000-4000-8000-000000000001";
 
 const WEB_DEMO_MODE = parseBool(process.env.WEB_DEMO_MODE);
 const API_BASE_URL = process.env.RUNWAY_API_URL ?? "http://127.0.0.1:3001";
