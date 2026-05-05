@@ -25,19 +25,19 @@ import { getCycleSummaryQuery } from "../src/temporal/queries.js";
  * Without this, every replay test passes while the production path is
  * unproven.
  *
- * SCOPE — what this test actually proves today:
+ * SCOPE — what this test proves today:
  *   ✓ computeCashForecast persists `cash_forecasts` row.
  *   ✓ rankCollectionsActions persists `collection_actions` rows.
+ *   ✓ draftMessages persists `message_drafts` rows with real UUIDs.
+ *   ✓ createApprovalRequests persists `approval_requests` rows with
+ *     `subject_id` referencing the persisted draft (real UUID, not
+ *     a synthetic cycle-derived string).
  *   ✓ Activities write `audit_events` and `outbox_events`.
- *   ✗ approval_requests are NOT asserted: the workflow generates
- *     synthetic deterministic strings as `subjectId`s (e.g.
- *     "daily-cash-action:co:date:drafts:draft:..."), but the
- *     `approval_requests.subject_id` column is `uuid`. The DB
- *     rejects the insert; the activity catches and returns synthetic
- *     ids so the workflow can keep running. This is a workflow→
- *     activity ID-architecture gap that needs its own slice (move
- *     UUID generation into activities and have workflows hold
- *     returned UUIDs in their state).
+ *
+ * The activity-returns-real-UUID architecture lands here: every
+ * activity that persists also returns the row's real UUID, so the
+ * workflow holds real UUIDs in its state and downstream activities
+ * can safely use them as foreign-key columns in subsequent inserts.
  *
  * AI is mocked deliberately: AI_MODE=mock keeps determinism; real-model
  * verification belongs in a separate nightly gate.
@@ -148,7 +148,7 @@ describeReal("DailyCashActionWorkflow — real activities + real Postgres", () =
     if (appPool) await appPool.end();
   }, 30_000);
 
-  it("runs the daily cycle through awaiting_approval and persists forecast + actions + audit + outbox", async () => {
+  it("runs the daily cycle through awaiting_approval and persists forecast + actions + drafts + approvals + audit + outbox", async () => {
     const handle = await env.client.workflow.start(DailyCashActionWorkflow, {
       args: [
         {
@@ -202,7 +202,42 @@ describeReal("DailyCashActionWorkflow — real activities + real Postgres", () =
     );
     expect(Number(actionRows.rows[0]!.count)).toBeGreaterThan(0);
 
-    // Audit trail written (forecast + ranking emit audit rows).
+    // Message drafts persisted with real UUIDs and FK action_id.
+    const draftRows = await adminPool.query<{
+      count: string;
+      orphans: string;
+    }>(
+      `SELECT
+         count(*) AS count,
+         count(*) FILTER (
+           WHERE action_id NOT IN (SELECT id FROM collection_actions)
+         ) AS orphans
+       FROM message_drafts WHERE company_id = $1`,
+      [companyId],
+    );
+    expect(Number(draftRows.rows[0]!.count)).toBeGreaterThan(0);
+    expect(Number(draftRows.rows[0]!.orphans)).toBe(0);
+
+    // Approval requests persisted with subject_id referencing real
+    // message_drafts rows. This used to silently fail because the
+    // workflow synthesised non-UUID subject ids.
+    const approvalRows = await adminPool.query<{
+      count: string;
+      orphans: string;
+    }>(
+      `SELECT
+         count(*) AS count,
+         count(*) FILTER (
+           WHERE subject_kind = 'message_draft'
+             AND subject_id NOT IN (SELECT id FROM message_drafts)
+         ) AS orphans
+       FROM approval_requests WHERE company_id = $1`,
+      [companyId],
+    );
+    expect(Number(approvalRows.rows[0]!.count)).toBeGreaterThan(0);
+    expect(Number(approvalRows.rows[0]!.orphans)).toBe(0);
+
+    // Audit trail written (forecast + ranking + approvals emit audit rows).
     const auditRows = await adminPool.query<{ count: string }>(
       `SELECT count(*) FROM audit_events WHERE company_id = $1`,
       [companyId],

@@ -1,4 +1,5 @@
 import { applyPolicyValidators } from "@runwayops/ai";
+import { repositories } from "@runwayops/db";
 import type {
   ClassifyReplyInput,
   CustomerMessageSummary,
@@ -14,6 +15,11 @@ import type {
   ReplyClassificationSummary
 } from "./types.js";
 import { getActivityContext } from "./context.js";
+
+const { withTenant, insertMessageDraft } = repositories;
+
+const PLACEHOLDER_DRAFT_BODY =
+  "[draft generation deferred — needs human review]";
 
 /**
  * Load a customer message from the DB. Gap: no `communication_messages`
@@ -157,75 +163,102 @@ export async function extractPromise(
   }
 }
 
+/**
+ * Draft a customer-facing message per ranked action. Persists each
+ * draft to `message_drafts` and returns the REAL UUIDs so downstream
+ * activities (e.g. createApprovalRequests) can use them as
+ * `subject_id`. Without this persistence the workflow would synthesise
+ * non-UUID strings and approval inserts would fail at the schema
+ * layer.
+ *
+ * Failure shapes are explicit:
+ *   - AI throws  → log loudly + persist a placeholder draft.
+ *   - Policy rejects AI output → persist a placeholder draft.
+ *   - DB insert fails → throws (caller / Temporal retries the activity).
+ */
 export async function draftMessages(input: DraftMessagesInput): Promise<MessageDraftSummary[]> {
-  const { ai } = getActivityContext();
-  const results: MessageDraftSummary[] = [];
+  const { ai, db } = getActivityContext();
+  const today = new Date().toISOString().slice(0, 10);
 
-  for (const actionId of input.actionIds) {
-    try {
-      const result = await ai.draftMessage({
-        action_type: "first_chase",
-        customer_name: "Customer",
-        company_name: "Company",
-        channel: "email",
-        tone: "neutral",
-        today: new Date().toISOString().slice(0, 10),
-        invoice_context: [],
-        evidence_refs: [{ kind: "invoice", id: actionId }]
-      });
+  return withTenant(db, input.companyId, async (tx) => {
+    const results: MessageDraftSummary[] = [];
 
-      const policyResult = applyPolicyValidators({
-        text: result.body,
-        recommendedAction: result.recommended_action,
-        safetyFlags: result.safety_flags,
-        evidenceRefs: result.evidence_refs
-      });
+    for (const actionId of input.actionIds) {
+      let bodyText = PLACEHOLDER_DRAFT_BODY;
+      let subject: string | undefined;
+      let channel: MessageDraftSummary["channel"] = "email";
+      let tone: MessageDraftSummary["tone"] = "neutral";
+      let modelTraceId: string | undefined;
 
-      if (!policyResult.ok) {
-        results.push({
-          draftId: `${input.idempotencyKey}:draft:${actionId}`,
-          actionId,
+      try {
+        const result = await ai.draftMessage({
+          action_type: "first_chase",
+          customer_name: "Customer",
+          company_name: "Company",
           channel: "email",
-          tone: "neutral"
+          tone: "neutral",
+          today,
+          invoice_context: [],
+          evidence_refs: [{ kind: "invoice", id: actionId }]
         });
-        continue;
+
+        const policyResult = applyPolicyValidators({
+          text: result.body,
+          recommendedAction: result.recommended_action,
+          safetyFlags: result.safety_flags,
+          evidenceRefs: result.evidence_refs
+        });
+
+        if (policyResult.ok) {
+          bodyText = result.body;
+          subject = result.subject;
+          channel = (["email", "sms", "phone", "letter", "portal"] as const).includes(
+            result.channel as "email" | "sms" | "phone" | "letter" | "portal"
+          )
+            ? (result.channel as MessageDraftSummary["channel"])
+            : "email";
+          tone = (["friendly", "neutral", "firm"] as const).includes(
+            result.tone as "friendly" | "neutral" | "firm"
+          )
+            ? (result.tone as MessageDraftSummary["tone"])
+            : "neutral";
+          // model_trace_id may not exist on all schema variants; guard.
+          const traceCandidate = (result as { model_trace_id?: unknown }).model_trace_id;
+          if (typeof traceCandidate === "string") modelTraceId = traceCandidate;
+        }
+      } catch (err: unknown) {
+        // AI failure on a single draft does not abort the batch — log
+        // and let the placeholder body persist. The downstream
+        // approver sees an empty draft and treats it as "needs
+        // review", which is the safe behaviour.
+        // eslint-disable-next-line no-console
+        console.error(
+          `[draftMessages] AI failure for action ${actionId}; persisting placeholder draft.`,
+          err instanceof Error ? err.message : err,
+        );
       }
 
-      // Map AI channel/tone to activity-safe types
-      const channel = (["email", "sms", "phone", "letter", "portal"] as const).includes(
-        result.channel as "email" | "sms" | "phone" | "letter" | "portal"
-      ) ? result.channel as "email" | "sms" | "phone" | "letter" | "portal" : "email";
-      const tone = (["friendly", "neutral", "firm"] as const).includes(
-        result.tone as "friendly" | "neutral" | "firm"
-      ) ? result.tone as "friendly" | "neutral" | "firm" : "neutral";
+      const insertInput: Parameters<typeof insertMessageDraft>[1] = {
+        companyId: input.companyId,
+        actionId,
+        channel,
+        bodyText,
+      };
+      if (subject !== undefined) insertInput.subject = subject;
+      if (modelTraceId !== undefined) insertInput.modelTraceId = modelTraceId;
+
+      const row = await insertMessageDraft(tx, insertInput);
 
       results.push({
-        draftId: `${input.idempotencyKey}:draft:${actionId}`,
+        draftId: row.id,
         actionId,
         channel,
         tone
       });
-    } catch (err: unknown) {
-      // AI failure on a single draft does not abort the batch — log
-      // and emit a placeholder draft summary so the workflow can
-      // proceed to the approval step. The downstream approver sees
-      // an empty draft and treats it as "needs review", which is the
-      // safe behaviour.
-      // eslint-disable-next-line no-console
-      console.error(
-        `[draftMessages] AI failure for action ${actionId}; emitting placeholder draft.`,
-        err instanceof Error ? err.message : err,
-      );
-      results.push({
-        draftId: `${input.idempotencyKey}:draft:${actionId}`,
-        actionId,
-        channel: "email",
-        tone: "neutral"
-      });
     }
-  }
 
-  return results;
+    return results;
+  });
 }
 
 export async function draftMessage(input: DraftMessagesInput): Promise<MessageDraftSummary> {

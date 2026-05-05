@@ -141,3 +141,9 @@ export {
   completeSyncJob,
   failSyncJob,
 } from "./integrations.js";
+
+export {
+  type MessageDraftRow,
+  type InsertMessageDraftInput,
+  insertMessageDraft,
+} from "./message-drafts.js";
