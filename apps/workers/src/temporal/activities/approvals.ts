@@ -1,3 +1,5 @@
+import { Context as ActivityContext } from "@temporalio/activity";
+
 import { repositories } from "@runwayops/db";
 import type {
   ApprovalRequestSummary,
@@ -8,6 +10,21 @@ import { getActivityContext } from "./context.js";
 const { withTenant, createApprovalRequest: dbCreateApproval, appendAuditEvent, enqueueOutbox } = repositories;
 
 /**
+ * Read the running workflow id from the activity context. Used to
+ * stash the workflow id on the approval_request so the API can later
+ * look up which workflow to signal when the user approves. Returns
+ * undefined when called outside a Temporal activity (e.g. unit tests).
+ */
+function tryGetWorkflowId(): string | undefined {
+  try {
+    const exec = ActivityContext.current().info.workflowExecution;
+    return exec?.workflowId;
+  } catch {
+    return undefined;
+  }
+}
+
+/**
  * Create approval requests in the DB within a tenant transaction.
  * Each request gets an audit event and outbox event.
  */
@@ -16,11 +33,26 @@ export async function createApprovalRequests(
 ): Promise<ApprovalRequestSummary[]> {
   const { db } = getActivityContext();
 
+  // Captured once per activity call so every approval row created
+  // in this batch points at the same originating workflow.
+  const workflowId = tryGetWorkflowId();
+
   try {
     return await withTenant(db, input.companyId, async (tx) => {
       const results: ApprovalRequestSummary[] = [];
 
       for (const subject of input.subjects) {
+        // The API approve endpoint reads `workflowId` from this
+        // snapshot to know which workflow to signal. Don't write the
+        // key when undefined — explicit absence is clearer than an
+        // explicit null. Typed as a JSON-compatible record so the
+        // db helper accepts it.
+        const contentSnapshot: { riskSummary?: string; workflowId?: string } = {};
+        if (subject.riskSummary !== undefined) {
+          contentSnapshot.riskSummary = subject.riskSummary;
+        }
+        if (workflowId !== undefined) contentSnapshot.workflowId = workflowId;
+
         const row = await dbCreateApproval(tx, {
           companyId: input.companyId,
           subjectKind: subject.subjectKind,
@@ -29,7 +61,7 @@ export async function createApprovalRequests(
           requestedAt: new Date(),
           riskSummary: subject.riskSummary,
           riskLevel: "medium",
-          contentSnapshot: { riskSummary: subject.riskSummary },
+          contentSnapshot,
           policyChecks: {},
           evidenceRefs: []
         });

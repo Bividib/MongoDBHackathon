@@ -1,14 +1,13 @@
 /**
- * v1 read-only endpoints consumed by apps/web in demo mode.
+ * v1 endpoints consumed by apps/web in demo mode.
  *
- *   GET /v1/forecasts/latest          — most recent CashForecast for the tenant
- *   GET /v1/actions?status=...        — collection actions filtered by status
- *   GET /v1/approvals?status=pending  — approval requests filtered by status
- *
- * Mutations live on the existing /api/* routes (notably
- * POST /api/actions/:id/approve), which the web app calls through the
- * same demo-header tenancy. v1 is a read alias — it intentionally does
- * not duplicate any side-effecting endpoint.
+ *   GET  /v1/forecasts/latest          — most recent CashForecast for the tenant
+ *   GET  /v1/actions?status=...        — collection actions filtered by status
+ *   GET  /v1/approvals?status=pending  — approval requests filtered by status
+ *   POST /v1/approvals/:id/approve     — record decision + emit outbox event
+ *                                        for the dispatcher to forward as a
+ *                                        Temporal signal to the originating
+ *                                        workflow.
  */
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
@@ -20,11 +19,17 @@ import type {
 } from "@runwayops/domain";
 
 import { withinTenant } from "../middleware/tenancy.js";
+import { ok, fail, notFound, type CommandResult } from "../lib/errors.js";
 
 const {
   getLatestForecast,
   listActionsByStatus,
   listPendingApprovalsForCompany,
+  getApprovalRequestById,
+  getApprovalRequestWorkflowId,
+  recordApprovalDecision,
+  appendAuditEvent,
+  enqueueOutbox,
 } = repositories;
 
 const actionStatusSchema = z.object({
@@ -83,4 +88,115 @@ export async function v1Routes(app: FastifyInstance): Promise<void> {
 
     return reply.status(200).send({ ok: true, data: approvals });
   });
+
+  // POST /v1/approvals/:id/approve
+  //
+  // Records the decision in the DB and writes a "approval.granted"
+  // outbox event carrying the originating workflowId. The workers'
+  // dispatcher → Temporal-signal handler (separate slice) forwards
+  // that outbox event to the running workflow as
+  // `approvalGrantedSignal({ approvalRequestId, ... })`. The split
+  // keeps the API HTTP-bounded and unaware of Temporal internals.
+  //
+  // Failure shape: 422 if the approval is already decided or if
+  // workflowId is missing from the approval's content_snapshot
+  // (means the approval was created before the activity captured
+  // workflow context — these need manual handling, not silent skip).
+  app.post<{ Params: { id: string }; Body: unknown }>(
+    "/v1/approvals/:id/approve",
+    async (request, reply) => {
+      const ctx = request.tenantCtx!;
+      const { id } = request.params;
+      const body = approveBodySchema.parse(request.body ?? {});
+
+      const result: CommandResult<unknown> = await withinTenant(
+        ctx.companyId,
+        async (tx) => {
+          const existing = await getApprovalRequestById(tx, {
+            companyId: ctx.companyId,
+            id,
+          });
+          if (!existing) return notFound("approval_request", id);
+          if (existing.status !== "pending") {
+            return fail(
+              "INVALID_TRANSITION",
+              `Approval ${id} is in '${existing.status}' state and cannot be approved again`,
+              422,
+            );
+          }
+
+          const workflowId = await getApprovalRequestWorkflowId(tx, {
+            companyId: ctx.companyId,
+            id,
+          });
+          if (!workflowId) {
+            return fail(
+              "MISSING_WORKFLOW_ID",
+              "Approval was not created with a workflow context; cannot signal a workflow to advance",
+              422,
+            );
+          }
+
+          const now = new Date();
+          const decisionInput: Parameters<typeof recordApprovalDecision>[1] = {
+            companyId: ctx.companyId,
+            approvalRequestId: id,
+            decision: "approved",
+            decidedByUserId: ctx.userId,
+            decidedAt: now,
+          };
+          if (body.note !== undefined) decisionInput.note = body.note;
+          const updated = await recordApprovalDecision(tx, decisionInput);
+          if (!updated) {
+            // recordApprovalDecision returns null on race (someone else
+            // moved it out of pending between the read above and the
+            // update). Surface as 422 rather than masking.
+            return fail(
+              "INVALID_TRANSITION",
+              "Approval was decided concurrently",
+              422,
+            );
+          }
+
+          await appendAuditEvent(tx, {
+            companyId: ctx.companyId,
+            actorType: "user",
+            actorId: ctx.userId,
+            action: "approval.granted",
+            targetKind: "approval",
+            targetId: id,
+            occurredAt: now,
+            summary: `Approval ${id} granted by ${ctx.email}${body.note ? `: ${body.note}` : ""}`,
+            evidenceRefs: [{ kind: "approval", id }],
+          });
+
+          await enqueueOutbox(tx, {
+            companyId: ctx.companyId,
+            eventType: "approval.granted",
+            aggregateType: "approval",
+            aggregateId: id,
+            payload: {
+              approvalRequestId: id,
+              workflowId,
+              decision: "approved",
+              decidedByUserId: ctx.userId,
+              decidedAtIso: now.toISOString(),
+            },
+            idempotencyKey: `approval.granted:${id}:${ctx.userId}`,
+          });
+
+          return ok(updated);
+        },
+      );
+
+      if (!result.ok) {
+        return reply.status(result.error.statusCode).send(result);
+      }
+      return reply.status(200).send(result);
+    },
+  );
 }
+
+const approveBodySchema = z.object({
+  note: z.string().optional(),
+});

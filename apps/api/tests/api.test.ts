@@ -99,6 +99,36 @@ describe("Demo-mode tenancy header", () => {
 });
 
 // ---------------------------------------------------------------------------
+// Approval signal path: POST /v1/approvals/:id/approve
+// ---------------------------------------------------------------------------
+
+describe("POST /v1/approvals/:id/approve", () => {
+  it("rejects unauthenticated requests with 401", async () => {
+    const res = await app.inject({
+      method: "POST",
+      url: "/v1/approvals/00000000-0000-0000-0000-000000000000/approve",
+      headers: { "content-type": "application/json", "idempotency-key": "k1" },
+      payload: {},
+    });
+    expect(res.statusCode).toBe(401);
+  });
+
+  it("requires an Idempotency-Key header (state-changing endpoint)", async () => {
+    const res = await app.inject({
+      method: "POST",
+      url: "/v1/approvals/00000000-0000-0000-0000-000000000000/approve",
+      headers: {
+        "x-runway-demo-company-id": "10000000-0000-4000-8000-000000000001",
+        "content-type": "application/json",
+      },
+      payload: {},
+    });
+    expect(res.statusCode).toBe(400);
+    expect(res.json().error.code).toBe("MISSING_IDEMPOTENCY_KEY");
+  });
+});
+
+// ---------------------------------------------------------------------------
 // Idempotency middleware
 // ---------------------------------------------------------------------------
 

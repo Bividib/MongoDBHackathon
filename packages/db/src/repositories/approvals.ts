@@ -162,6 +162,34 @@ export async function recordApprovalDecision(
   return rowToApprovalRequest(updated[0]!);
 }
 
+/**
+ * Read the workflow_id stored on an approval_request's content_snapshot.
+ * Returns null when the row doesn't exist or wasn't created by a
+ * workflow-scoped activity (legacy rows, manual API-created approvals).
+ * Used by the API approve endpoint to know which Temporal workflow
+ * should receive the approvalGrantedSignal.
+ */
+export async function getApprovalRequestWorkflowId(
+  handle: DbHandle,
+  input: { companyId: string; id: string },
+): Promise<string | null> {
+  const rows = await handle
+    .select({ contentSnapshot: approvalRequests.contentSnapshot })
+    .from(approvalRequests)
+    .where(
+      and(
+        eq(approvalRequests.companyId, input.companyId),
+        eq(approvalRequests.id, input.id),
+      ),
+    )
+    .limit(1);
+  if (rows.length !== 1) return null;
+  const snapshot = rows[0]!.contentSnapshot;
+  if (!snapshot || typeof snapshot !== "object") return null;
+  const workflowId = (snapshot as Record<string, unknown>)["workflowId"];
+  return typeof workflowId === "string" && workflowId.length > 0 ? workflowId : null;
+}
+
 export async function getApprovalRequestById(
   handle: DbHandle,
   input: { companyId: string; id: string },

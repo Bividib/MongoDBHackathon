@@ -66,6 +66,7 @@ export {
   createApprovalRequest,
   recordApprovalDecision,
   getApprovalRequestById,
+  getApprovalRequestWorkflowId,
   listPendingApprovalsForCompany,
 } from "./approvals.js";
 
