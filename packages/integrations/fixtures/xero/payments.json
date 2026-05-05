@@ -1,0 +1,24 @@
+[
+  {
+    "PaymentID": "xero-pay-9001",
+    "Date": "2026-04-22",
+    "Amount": 2500.0,
+    "CurrencyCode": "GBP",
+    "Status": "AUTHORISED",
+    "Reference": "BACS RO-1002 partial",
+    "Invoice": { "InvoiceID": "xero-inv-1002" },
+    "Account": { "Code": "090" },
+    "UpdatedDateUTC": "2026-04-22T15:20:00Z"
+  },
+  {
+    "PaymentID": "xero-pay-9002",
+    "Date": "2026-03-28",
+    "Amount": 4250.0,
+    "CurrencyCode": "GBP",
+    "Status": "AUTHORISED",
+    "Reference": "RO-1003 final",
+    "Invoice": { "InvoiceID": "xero-inv-1003" },
+    "Account": { "Code": "090" },
+    "UpdatedDateUTC": "2026-03-28T11:00:00Z"
+  }
+]

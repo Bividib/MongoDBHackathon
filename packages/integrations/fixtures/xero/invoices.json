@@ -1,0 +1,44 @@
+[
+  {
+    "InvoiceID": "xero-inv-1001",
+    "InvoiceNumber": "RO-1001",
+    "Type": "ACCREC",
+    "Status": "AUTHORISED",
+    "Contact": { "ContactID": "xero-contact-northstar" },
+    "Date": "2026-04-04",
+    "DueDate": "2026-05-04",
+    "Total": 18500.0,
+    "AmountDue": 18500.0,
+    "AmountPaid": 0.0,
+    "CurrencyCode": "GBP",
+    "UpdatedDateUTC": "2026-05-01T08:31:00Z"
+  },
+  {
+    "InvoiceID": "xero-inv-1002",
+    "InvoiceNumber": "RO-1002",
+    "Type": "ACCREC",
+    "Status": "AUTHORISED",
+    "Contact": { "ContactID": "xero-contact-loomside" },
+    "Date": "2026-04-12",
+    "DueDate": "2026-05-12",
+    "Total": 7600.5,
+    "AmountDue": 5100.5,
+    "AmountPaid": 2500.0,
+    "CurrencyCode": "GBP",
+    "UpdatedDateUTC": "2026-05-02T10:05:00Z"
+  },
+  {
+    "InvoiceID": "xero-inv-1003",
+    "InvoiceNumber": "RO-1003",
+    "Type": "ACCREC",
+    "Status": "PAID",
+    "Contact": { "ContactID": "xero-contact-stone" },
+    "Date": "2026-03-01",
+    "DueDate": "2026-03-31",
+    "Total": 4250.0,
+    "AmountDue": 0.0,
+    "AmountPaid": 4250.0,
+    "CurrencyCode": "GBP",
+    "UpdatedDateUTC": "2026-04-02T08:00:00Z"
+  }
+]
