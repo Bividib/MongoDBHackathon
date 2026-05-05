@@ -192,7 +192,12 @@ export async function getCollectionActionById(
 
 export async function listActionsByStatus(
   handle: DbHandle,
-  input: { companyId: string; status: CollectionActionStatus; limit?: number },
+  input: {
+    companyId: string;
+    status: CollectionActionStatus;
+    limit?: number;
+    offset?: number;
+  },
 ): Promise<CollectionAction[]> {
   const rows = await handle
     .select()
@@ -204,7 +209,8 @@ export async function listActionsByStatus(
       ),
     )
     .orderBy(desc(collectionActions.priorityScore))
-    .limit(input.limit ?? 100);
+    .limit(input.limit ?? 100)
+    .offset(input.offset ?? 0);
   return rows.map(rowToCollectionAction);
 }
 

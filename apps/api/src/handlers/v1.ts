@@ -32,6 +32,48 @@ const {
   enqueueOutbox,
 } = repositories;
 
+const DEFAULT_PAGE_LIMIT = 50;
+const MAX_PAGE_LIMIT = 100;
+
+/**
+ * Parse + clamp pagination from a query string. Refused inputs collapse
+ * to safe defaults rather than 400 — list endpoints should be lenient
+ * on bad pagination so a malformed link doesn't crash a session.
+ */
+function parsePagination(raw: unknown): { limit: number; offset: number } {
+  const obj = (raw && typeof raw === "object" ? raw : {}) as Record<string, unknown>;
+  const limitRaw = Number(obj["limit"]);
+  const offsetRaw = Number(obj["offset"]);
+  const limit = Number.isFinite(limitRaw) && limitRaw > 0
+    ? Math.min(Math.floor(limitRaw), MAX_PAGE_LIMIT)
+    : DEFAULT_PAGE_LIMIT;
+  const offset = Number.isFinite(offsetRaw) && offsetRaw >= 0
+    ? Math.floor(offsetRaw)
+    : 0;
+  return { limit, offset };
+}
+
+interface ListMeta {
+  limit: number;
+  offset: number;
+  hasMore: boolean;
+}
+
+/**
+ * Run a list query with `limit + 1` overfetch and split the page so
+ * the response can carry `hasMore` without a separate COUNT query.
+ */
+async function paginate<T>(
+  pageLimit: number,
+  pageOffset: number,
+  fetch: (limit: number, offset: number) => Promise<T[]>,
+): Promise<{ items: T[]; meta: ListMeta }> {
+  const overfetched = await fetch(pageLimit + 1, pageOffset);
+  const hasMore = overfetched.length > pageLimit;
+  const items = hasMore ? overfetched.slice(0, pageLimit) : overfetched;
+  return { items, meta: { limit: pageLimit, offset: pageOffset, hasMore } };
+}
+
 const actionStatusSchema = z.object({
   status: z.string().optional(),
 });
@@ -62,31 +104,39 @@ export async function v1Routes(app: FastifyInstance): Promise<void> {
     const ctx = request.tenantCtx!;
     const query = actionStatusSchema.parse(request.query);
     const status = (query.status ?? "awaiting_approval") as CollectionActionStatus;
+    const { limit, offset } = parsePagination(request.query);
 
-    const actions = await withinTenant(ctx.companyId, async (tx) => {
-      return listActionsByStatus(tx, { companyId: ctx.companyId, status });
+    const { items, meta } = await withinTenant(ctx.companyId, async (tx) => {
+      return paginate(limit, offset, async (l, o) =>
+        listActionsByStatus(tx, { companyId: ctx.companyId, status, limit: l, offset: o }),
+      );
     });
 
-    return reply.status(200).send({ ok: true, data: actions });
+    return reply.status(200).send({ ok: true, data: items, meta });
   });
 
   app.get("/v1/approvals", async (request, reply) => {
     const ctx = request.tenantCtx!;
     const query = approvalStatusSchema.parse(request.query);
     const status = (query.status ?? "pending") as ApprovalStatus;
+    const { limit, offset } = parsePagination(request.query);
 
     // Only "pending" is supported in demo mode — the inbox screen only
     // lists pending approvals. Other statuses return an empty array
     // rather than 400 so the web client can pass any value defensively.
     if (status !== "pending") {
-      return reply.status(200).send({ ok: true, data: [] });
+      return reply
+        .status(200)
+        .send({ ok: true, data: [], meta: { limit, offset, hasMore: false } });
     }
 
-    const approvals = await withinTenant(ctx.companyId, async (tx) => {
-      return listPendingApprovalsForCompany(tx, { companyId: ctx.companyId });
+    const { items, meta } = await withinTenant(ctx.companyId, async (tx) => {
+      return paginate(limit, offset, async (l, o) =>
+        listPendingApprovalsForCompany(tx, { companyId: ctx.companyId, limit: l, offset: o }),
+      );
     });
 
-    return reply.status(200).send({ ok: true, data: approvals });
+    return reply.status(200).send({ ok: true, data: items, meta });
   });
 
   // POST /v1/approvals/:id/approve

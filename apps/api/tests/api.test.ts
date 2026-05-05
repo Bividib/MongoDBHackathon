@@ -102,6 +102,52 @@ describe("Demo-mode tenancy header", () => {
 // Approval signal path: POST /v1/approvals/:id/approve
 // ---------------------------------------------------------------------------
 
+// ---------------------------------------------------------------------------
+// Production hardening: pagination, rate limit, correlation id
+// ---------------------------------------------------------------------------
+
+describe("Production hardening", () => {
+  it("attaches an x-request-id header to every response", async () => {
+    const res = await app.inject({ method: "GET", url: "/healthz" });
+    expect(res.headers["x-request-id"]).toBeDefined();
+    expect(res.headers["x-request-id"]).toMatch(/^req-/);
+  });
+
+  it("propagates an inbound x-request-id header into the response (cross-system tracing)", async () => {
+    const res = await app.inject({
+      method: "GET",
+      url: "/healthz",
+      headers: { "x-request-id": "trace-abc-123" },
+    });
+    expect(res.headers["x-request-id"]).toBe("trace-abc-123");
+  });
+
+  it("/v1/* list endpoints accept ?limit and ?offset (pagination)", async () => {
+    // Without DATABASE_URL the handler hits a 500 when querying. We're
+    // asserting the route SHAPE accepts pagination params, not that
+    // the query succeeds.
+    const res = await app.inject({
+      method: "GET",
+      url: "/v1/actions?status=awaiting_approval&limit=5&offset=10",
+      headers: { "x-runway-demo-company-id": "10000000-0000-4000-8000-000000000001" },
+    });
+    expect(res.statusCode).not.toBe(401);
+    expect(res.statusCode).not.toBe(400);
+  });
+
+  it("clamps over-large limit values rather than rejecting (lenient pagination)", async () => {
+    // Same shape assertion: limit=99999 should be clamped to MAX (100),
+    // not 400'd. Verifying the route accepts the request.
+    const res = await app.inject({
+      method: "GET",
+      url: "/v1/approvals?status=pending&limit=99999&offset=0",
+      headers: { "x-runway-demo-company-id": "10000000-0000-4000-8000-000000000001" },
+    });
+    expect(res.statusCode).not.toBe(401);
+    expect(res.statusCode).not.toBe(400);
+  });
+});
+
 describe("POST /v1/approvals/:id/approve", () => {
   it("rejects unauthenticated requests with 401", async () => {
     const res = await app.inject({

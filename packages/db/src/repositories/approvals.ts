@@ -206,7 +206,12 @@ export async function getApprovalRequestById(
 
 export async function listPendingApprovalsForCompany(
   handle: DbHandle,
-  input: { companyId: string; assigneeUserId?: string; limit?: number },
+  input: {
+    companyId: string;
+    assigneeUserId?: string;
+    limit?: number;
+    offset?: number;
+  },
 ): Promise<ApprovalRequest[]> {
   const conditions = [
     eq(approvalRequests.companyId, input.companyId),
@@ -220,6 +225,7 @@ export async function listPendingApprovalsForCompany(
     .from(approvalRequests)
     .where(and(...conditions))
     .orderBy(desc(approvalRequests.requestedAt))
-    .limit(input.limit ?? 100);
+    .limit(input.limit ?? 100)
+    .offset(input.offset ?? 0);
   return rows.map(rowToApprovalRequest);
 }

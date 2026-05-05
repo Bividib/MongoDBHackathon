@@ -13,6 +13,7 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
+    "@fastify/rate-limit": "^10.3.0",
     "@runwayops/db": "file:../../packages/db",
     "@runwayops/domain": "file:../../packages/domain",
     "@runwayops/policy": "file:../../packages/policy",
