@@ -44,8 +44,17 @@ export async function writeAuditEvent(input: WriteAuditEventInput): Promise<Audi
 
       return { auditEventId: event.id };
     });
-  } catch {
-    // Fallback for stub mode
+  } catch (err: unknown) {
+    // Loud failure: the workflow proceeds with a synthetic id so the
+    // run can complete, but the operator sees the underlying error in
+    // the worker logs. Silent fallback was masking real bugs (subject_id
+    // type mismatches, RLS denials, FK violations) — see audit notes
+    // in apps/workers/tests/e2e-real-activities.test.ts.
+    // eslint-disable-next-line no-console
+    console.error(
+      `[writeAuditEvent] DB persistence failed for company ${input.companyId} action ${input.action}; returning synthetic id.`,
+      err instanceof Error ? err.message : err,
+    );
     return { auditEventId: `${input.idempotencyKey}:audit` };
   }
 }
@@ -96,7 +105,12 @@ export async function emitDomainEvent(
         occurredAtIso: row.createdAt.toISOString()
       };
     });
-  } catch {
+  } catch (err: unknown) {
+    // eslint-disable-next-line no-console
+    console.error(
+      `[emitDomainEvent] outbox enqueue failed for company ${input.companyId} type ${input.type}; returning synthetic id.`,
+      err instanceof Error ? err.message : err,
+    );
     return {
       eventId: `${input.idempotencyKey}:event`,
       type: input.type,

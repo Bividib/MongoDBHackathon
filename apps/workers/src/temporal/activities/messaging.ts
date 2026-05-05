@@ -73,11 +73,22 @@ export async function classifyReply(
       confidence: result.confidence,
       hasPromiseHint: (result.classification as string).includes("promise")
     };
-  } catch {
+  } catch (err: unknown) {
+    // SAFETY: never fabricate a customer signal on AI failure. The
+    // previous fallback returned `conditional_promise` with 0.74
+    // confidence — that asserted the customer made a promise they
+    // never made. Now we route to `needs_review` so a human looks
+    // at the original message before any forecast or draft uses
+    // this classification.
+    // eslint-disable-next-line no-console
+    console.error(
+      `[classifyReply] AI failure for message ${input.messageEventId}; returning needs_review.`,
+      err instanceof Error ? err.message : err,
+    );
     return {
-      classification: "conditional_promise",
-      confidence: 0.74,
-      hasPromiseHint: true
+      classification: "needs_review",
+      confidence: 0,
+      hasPromiseHint: false
     };
   }
 }
@@ -127,13 +138,21 @@ export async function extractPromise(
       conditionText: result.condition_text ?? undefined,
       cashConfidence: result.cash_confidence
     };
-  } catch {
+  } catch (err: unknown) {
+    // SAFETY: never fabricate a promise on AI failure. The previous
+    // fallback claimed the customer promised PO re-approval on
+    // 2026-05-08 — false content that would have flowed straight
+    // into forecast confidence. Now we return hasPromise: false with
+    // zero confidence so the forecast doesn't lean on an AI failure
+    // mode as if it were a customer commitment.
+    // eslint-disable-next-line no-console
+    console.error(
+      `[extractPromise] AI failure for message ${input.messageEventId}; returning hasPromise=false.`,
+      err instanceof Error ? err.message : err,
+    );
     return {
-      hasPromise: true,
-      promiseType: "conditional",
-      promisedDateIso: "2026-05-08",
-      conditionText: "PO re-approval",
-      cashConfidence: 0.42
+      hasPromise: false,
+      cashConfidence: 0
     };
   }
 }
@@ -186,7 +205,17 @@ export async function draftMessages(input: DraftMessagesInput): Promise<MessageD
         channel,
         tone
       });
-    } catch {
+    } catch (err: unknown) {
+      // AI failure on a single draft does not abort the batch — log
+      // and emit a placeholder draft summary so the workflow can
+      // proceed to the approval step. The downstream approver sees
+      // an empty draft and treats it as "needs review", which is the
+      // safe behaviour.
+      // eslint-disable-next-line no-console
+      console.error(
+        `[draftMessages] AI failure for action ${actionId}; emitting placeholder draft.`,
+        err instanceof Error ? err.message : err,
+      );
       results.push({
         draftId: `${input.idempotencyKey}:draft:${actionId}`,
         actionId,
