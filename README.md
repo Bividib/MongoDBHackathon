@@ -7,14 +7,18 @@ human-approved communications, and learns from outcomes.
 
 **Status:** simulated daily action loop end-to-end across foundation
 packages, API, web, workers, and policy engine, plus a Xero-simulated
-integrations adapter, demo-mode header tenancy in the API, and a real
+integrations adapter, demo-mode header tenancy in the API, a real
 Anthropic-backed `ModelRouter` wired into the worker activity context
 behind an env kill switch (`AI_MODE=anthropic` + `ANTHROPIC_API_KEY`;
-default is mock; resolved mode is logged at worker boot). 288 tests
-pass via `npm run verify:full` (real Postgres + RLS + dispatcher +
-e2e workflow simulation + API policy gate + integrations real-PG
-sync + workers cash-engine wiring + web→API demo-header + AI factory/
-adapter/budget guard + activity-context wiring).
+default is mock; resolved mode is logged at worker boot), AND a real
+Xero adapter alongside the simulated one (REST + OAuth refresh +
+plaintext token storage, swappable via factory; OAuth UI deferred
+until the developer-account is registered). 308 tests pass via
+`npm run verify:full` (real Postgres + RLS + dispatcher + e2e
+workflow simulation + API policy gate + integrations real-PG sync +
+workers cash-engine wiring + web→API demo-header + AI factory/
+adapter/budget guard + activity-context wiring + Xero adapter wire
+contract + OAuth refresh + token-store round-trip).
 
 Source of truth for product + architecture:
 - [`New Spec.md`](./New%20Spec.md) — full product specification
@@ -129,13 +133,13 @@ CI runs `verify:full` on every PR via [.github/workflows/verify.yml](./.github/w
 | `domain` | 32 | Money arithmetic, schemas for every entity, type round-trips |
 | `cash-engine` | 13 | Forecast, ranking, matching, money invariants |
 | `ai` | 105 | Mappers, validators, eval suite (≥95% accuracy thresholds), adversarial corpus, real-Anthropic adapter, cost-controlled router, env-gated factory |
-| `db` | 29 | Repos, source dedup, idempotency, outbox, RLS isolation, forecast bigint round-trip, fact-loader |
-| `integrations` | 16 | Provider mapper, Xero simulated adapter, source-object dedup (real-PG) |
+| `db` | 32 | Repos, source dedup, idempotency, outbox, RLS isolation, forecast bigint round-trip, fact-loader, integration-tokens (real-PG) |
+| `integrations` | 33 | Provider mapper, Xero simulated adapter, Xero real adapter (paginated wire contract), Xero OAuth helpers, factory with refresh-on-demand, source-object dedup (real-PG) |
 | `policy` | 24 | All 6 hard-refusal rules, gate brand, ts-expect-error type tests |
 | `workers` | 19 | 4 workflow replay tests, 6 dispatcher tests, 1 e2e simulation, 2 engine-projection tests, 6 activity-context wiring tests |
 | `api` | 27 | Endpoints, tenancy, idempotency, policy gate, demo-mode header (UUID-guarded) |
 | `web` | 23 | Wire format, hard-refusal UI invariants, API client, wire→view-model adapters |
-| **total** | **288** | zero skips under `verify:full` |
+| **total** | **308** | zero skips under `verify:full` |
 
 ---
 

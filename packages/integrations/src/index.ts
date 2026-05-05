@@ -33,3 +33,15 @@ export type { SyncOptions, SyncResult } from "./sync.js";
 export { syncProviderToSourceObjects } from "./sync.js";
 
 export { XeroSimulatedAdapter } from "./adapters/xero-simulated.js";
+export { XeroRealAdapter, type XeroRealAdapterOptions } from "./adapters/xero-real.js";
+export {
+  exchangeAuthCodeForTokens,
+  refreshAccessToken,
+  type XeroOAuthClientConfig,
+  type XeroTokenResponse,
+} from "./adapters/xero-oauth.js";
+export {
+  buildXeroAdapterForConnection,
+  type BuildXeroAdapterInput,
+  type IntegrationTokenStore,
+} from "./adapters/xero-factory.js";
