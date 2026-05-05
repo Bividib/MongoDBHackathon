@@ -19,7 +19,7 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@runwayops/domain": "workspace:*"
+    "@runwayops/domain": "file:../domain"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
